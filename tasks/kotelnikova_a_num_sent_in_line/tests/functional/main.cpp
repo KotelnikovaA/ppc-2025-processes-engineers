@@ -58,6 +58,7 @@ const std::array<TestType, 5> kTestParam = {
   std::make_tuple("How are you? I'm fine!", 2),
   std::make_tuple("What? When? Where?", 3),
   std::make_tuple("Just one sentence.", 1),
+  std::make_tuple("Just. One. Sentence.", 3)
 };
 
 const auto kTestTasksList =
