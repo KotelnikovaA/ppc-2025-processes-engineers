@@ -15,6 +15,9 @@ KotelnikovaANumSentInLineSEQ::KotelnikovaANumSentInLineSEQ(const InType &in) {
 }
 
 bool KotelnikovaANumSentInLineSEQ::ValidationImpl() {
+  if (GetInput().empty()) {
+    return false;
+  }
   return true;
 }
 
@@ -24,10 +27,10 @@ bool KotelnikovaANumSentInLineSEQ::PreProcessingImpl() {
 
 bool KotelnikovaANumSentInLineSEQ::RunImpl() {
   const std::string &text = GetInput();
-  int sentence_count = 0;
+  std::size_t sentence_count = 0;
   bool in_sentence = false;
 
-  for (size_t i = 0; i < text.length(); ++i) {
+  for (std::size_t i = 0; i < text.length(); ++i) {
     char current_symb = text[i];
 
     if (current_symb == '.' || current_symb == '!' || current_symb == '?') {

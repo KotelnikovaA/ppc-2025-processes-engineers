@@ -2,6 +2,8 @@
 
 #include <array>
 #include <cstddef>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <tuple>
 
@@ -20,7 +22,7 @@ class KotelnikovaARunFuncTestsProcesses : public ppc::util::BaseRunFuncTests<InT
     test_counter++;
 
     const std::string &text = std::get<0>(test_param);
-    int expected = std::get<1>(test_param);
+    std::size_t expected = std::get<1>(test_param);
 
     std::string name = "test_" + std::to_string(test_counter);
     name += "_len" + std::to_string(text.length());
@@ -45,30 +47,77 @@ class KotelnikovaARunFuncTestsProcesses : public ppc::util::BaseRunFuncTests<InT
 
  private:
   InType input_data_;
-  int expected_count_ = 0;
+  std::size_t expected_count_ = 0;
 };
 
 namespace {
 
-TEST_P(KotelnikovaARunFuncTestsProcesses, MatmulFromPic) {
+TEST_P(KotelnikovaARunFuncTestsProcesses, SentenceCountingTests) {
   ExecuteTest(GetParam());
 }
 
-const std::array<TestType, 6> kTestParam = {
-    std::make_tuple("Hello world.", 1),           std::make_tuple("First. Second.", 2),
-    std::make_tuple("How are you? I'm fine!", 2), std::make_tuple("What? When? Where?", 3),
-    std::make_tuple("Just one sentence.", 1),     std::make_tuple("Just. One. Sentence.", 3)};
+std::array<TestType, 6> LoadTestData() {
+  std::array<TestType, 6> test_cases;
+  
+  std::array<std::pair<std::string, std::size_t>, 6> test_files = {{
+    {"test_1.txt", 1},
+    {"test_2.txt", 3}, 
+    {"test_3.txt", 8},
+    {"test_4.txt", 11},
+    {"test_5.txt", 4},
+    {"test_6.txt", 41}
+  }};
+  
+  for (size_t i = 0; i < test_files.size(); ++i) {
+    const auto& file_info = test_files[i];
+    
+    std::vector<std::string> possible_paths = {
+      "../../../tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.first,
+      "../tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.first,
+      "tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.first,
+      "kotelnikova_a_num_sent_in_line/data/" + file_info.first,
+      "data/" + file_info.first
+    };
+    
+    bool file_loaded = false;
+    for (const auto& path : possible_paths) {
+      std::ifstream file(path);
+      if (file.is_open()) {
+        std::stringstream ss;
+        ss << file.rdbuf();
+        std::string content = ss.str();
+        test_cases[i] = std::make_tuple(content, file_info.second);
+        file_loaded = true;
+        std::cout << "Successfully loaded: " << path << std::endl;
+        break;
+      }
+    }
+    
+    if (!file_loaded) {
+      std::cout << "WARNING: Using fallback data for " << file_info.first << std::endl;
+      std::string fallback_text = "Fallback text for " + file_info.first + ".";
+      test_cases[i] = std::make_tuple(fallback_text, file_info.second);
+    }
+  }
+  
+  return test_cases;
+}
 
-const auto kTestTasksList = std::tuple_cat(ppc::util::AddFuncTask<KotelnikovaANumSentInLineMPI, InType>(
-                                               kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line),
-                                           ppc::util::AddFuncTask<KotelnikovaANumSentInLineSEQ, InType>(
-                                               kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line));
+const std::array<TestType, 6> kTestParam = LoadTestData();
+
+const auto kTestTasksList = std::tuple_cat(
+    ppc::util::AddFuncTask<KotelnikovaANumSentInLineMPI, InType>(
+        kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line),
+    ppc::util::AddFuncTask<KotelnikovaANumSentInLineSEQ, InType>(
+        kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line)
+);
 
 const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 
 const auto kPerfTestName = KotelnikovaARunFuncTestsProcesses::PrintFuncTestName<KotelnikovaARunFuncTestsProcesses>;
 
 INSTANTIATE_TEST_SUITE_P(SentenceCountingTests, KotelnikovaARunFuncTestsProcesses, kGtestValues, kPerfTestName);
+
 }  // namespace
 
 }  // namespace kotelnikova_a_num_sent_in_line

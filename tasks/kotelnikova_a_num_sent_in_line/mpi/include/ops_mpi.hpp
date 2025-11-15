@@ -21,12 +21,10 @@ class KotelnikovaANumSentInLineMPI : public BaseTask {
   bool RunImpl() override;
   bool PostProcessingImpl() override;
 
-  static int CountSentencesSequential(const std::string &text);
-  static int CountLocalSentences(const std::string &text, int start, int end);
-  static bool CheckUnfinishedContent(const std::string &text, int start, int end);
+  static std::size_t CountSentencesSequential(const std::string &text);
   static bool IsSentenceEnd(char c);
-  static int SynchronizeWithNeighbors(int local_count, bool has_unfinished, int world_rank, int world_size);
-  void DistributeResult(int global_count);
+  static bool IsWordCharacter(char c);
+  static int CountSentencesInChunk(const std::string &text, int start, int end, int world_rank, int world_size);
 };
 
 }  // namespace kotelnikova_a_num_sent_in_line
