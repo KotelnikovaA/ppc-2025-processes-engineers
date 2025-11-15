@@ -1,8 +1,7 @@
 #pragma once
 
-#include <algorithm>
 #include <cctype>
-#include <iostream>
+#include <cstddef>
 #include <string>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
@@ -23,7 +22,7 @@ class KotelnikovaANumSentInLineMPI : public BaseTask {
   bool RunImpl() override;
   bool PostProcessingImpl() override;
 
-  int count_sentences_sequential(const std::string &text) {
+  static int CountSentencesSequential(const std::string &text) {
     int count = 0;
     bool in_sentence = false;
 
@@ -35,7 +34,7 @@ class KotelnikovaANumSentInLineMPI : public BaseTask {
           count++;
           in_sentence = false;
         }
-      } else if (std::isalnum(static_cast<unsigned char>(c))) {
+      } else if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
         in_sentence = true;
       }
     }

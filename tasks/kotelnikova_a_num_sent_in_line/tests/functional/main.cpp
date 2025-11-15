@@ -9,7 +9,6 @@
 #include "kotelnikova_a_num_sent_in_line/mpi/include/ops_mpi.hpp"
 #include "kotelnikova_a_num_sent_in_line/seq/include/ops_seq.hpp"
 #include "util/include/func_test_util.hpp"
-#include "util/include/util.hpp"
 
 namespace kotelnikova_a_num_sent_in_line {
 

@@ -3,12 +3,9 @@
 #include <mpi.h>
 
 #include <algorithm>
-#include <cctype>
-#include <iostream>
 #include <string>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
-#include "util/include/util.hpp"
 
 namespace kotelnikova_a_num_sent_in_line {
 
@@ -28,21 +25,22 @@ bool KotelnikovaANumSentInLineMPI::PreProcessingImpl() {
 
 bool KotelnikovaANumSentInLineMPI::RunImpl() {
   const std::string &text = GetInput();
-  int world_size, world_rank;
+  int world_size = 0;
+  int world_rank = 0;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
   int total_length = static_cast<int>(text.length());
 
   if (world_size == 1) {
-    GetOutput() = count_sentences_sequential(text);
+    GetOutput() = CountSentencesSequential(text);
     return true;
   }
 
   int chunk_size = total_length / world_size;
   int remainder = total_length % world_size;
 
-  int start = world_rank * chunk_size + std::min(world_rank, remainder);
+  int start = (world_rank * chunk_size) + std::min(world_rank, remainder);
   int end = start + chunk_size + (world_rank < remainder ? 1 : 0);
 
   int local_count = 0;
@@ -51,7 +49,7 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
   for (int i = start; i < end; ++i) {
     char c = text[i];
 
-    if (std::isalnum(static_cast<unsigned char>(c))) {
+    if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
       has_unfinished_content = true;
     } else if ((c == '.' || c == '!' || c == '?') && has_unfinished_content) {
       local_count++;

@@ -3,10 +3,8 @@
 #include <cctype>
 #include <cstddef>
 #include <string>
-#include <vector>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
-#include "util/include/util.hpp"
 
 namespace kotelnikova_a_num_sent_in_line {
 
@@ -37,7 +35,7 @@ bool KotelnikovaANumSentInLineSEQ::RunImpl() {
         sentence_count++;
         in_sentence = false;
       }
-    } else if (std::isalnum(static_cast<unsigned char>(current_symb))) {
+    } else if (std::isalnum(static_cast<unsigned char>(current_symb)) != 0) {
       in_sentence = true;
     }
   }
