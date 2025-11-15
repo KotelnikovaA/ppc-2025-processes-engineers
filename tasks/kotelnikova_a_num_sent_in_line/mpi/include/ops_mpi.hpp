@@ -22,28 +22,12 @@ class KotelnikovaANumSentInLineMPI : public BaseTask {
   bool RunImpl() override;
   bool PostProcessingImpl() override;
 
-  static int CountSentencesSequential(const std::string &text) {
-    int count = 0;
-    bool in_sentence = false;
-
-    for (size_t i = 0; i < text.length(); ++i) {
-      char c = text[i];
-
-      if (c == '.' || c == '!' || c == '?') {
-        if (in_sentence) {
-          count++;
-          in_sentence = false;
-        }
-      } else if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
-        in_sentence = true;
-      }
-    }
-
-    if (in_sentence) {
-      count++;
-    }
-    return count;
-  }
+  static int CountSentencesSequential(const std::string &text);
+  int CountLocalSentences(const std::string &text, int start, int end);
+  bool CheckUnfinishedContent(const std::string &text, int start, int end);
+  bool IsSentenceEnd(char c);
+  int SynchronizeWithNeighbors(int local_count, bool has_unfinished, int world_rank, int world_size);
+  void DistributeResult(int global_count);
 };
 
 }  // namespace kotelnikova_a_num_sent_in_line
