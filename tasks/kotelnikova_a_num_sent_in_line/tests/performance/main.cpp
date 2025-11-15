@@ -24,7 +24,7 @@ class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InTy
   }
 
   bool CheckTestOutputData(OutType &output_data) final {
-    return output_data >= 0 && output_data <= static_cast<int>(input_data_.length());
+    return output_data >= 0 && static_cast<size_t>(output_data) <= input_data_.length();
   }
 
   InType GetTestInputData() final {

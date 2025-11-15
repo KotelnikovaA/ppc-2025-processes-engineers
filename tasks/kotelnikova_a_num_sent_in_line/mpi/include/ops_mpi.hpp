@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cctype>
-#include <cstddef>
 #include <string>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
@@ -23,10 +22,10 @@ class KotelnikovaANumSentInLineMPI : public BaseTask {
   bool PostProcessingImpl() override;
 
   static int CountSentencesSequential(const std::string &text);
-  int CountLocalSentences(const std::string &text, int start, int end);
-  bool CheckUnfinishedContent(const std::string &text, int start, int end);
-  bool IsSentenceEnd(char c);
-  int SynchronizeWithNeighbors(int local_count, bool has_unfinished, int world_rank, int world_size);
+  static int CountLocalSentences(const std::string &text, int start, int end);
+  static bool CheckUnfinishedContent(const std::string &text, int start, int end);
+  static bool IsSentenceEnd(char c);
+  static int SynchronizeWithNeighbors(int local_count, bool has_unfinished, int world_rank, int world_size);
   void DistributeResult(int global_count);
 };
 
