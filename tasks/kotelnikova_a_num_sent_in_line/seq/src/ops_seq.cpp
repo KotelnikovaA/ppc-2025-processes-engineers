@@ -1,7 +1,7 @@
 #include "kotelnikova_a_num_sent_in_line/seq/include/ops_seq.hpp"
 
-#include <vector>
 #include <string>
+#include <vector>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
 #include "util/include/util.hpp"
@@ -23,13 +23,13 @@ bool KotelnikovaANumSentInLineSEQ::PreProcessingImpl() {
 }
 
 bool KotelnikovaANumSentInLineSEQ::RunImpl() {
-  const std::string& text = GetInput();
+  const std::string &text = GetInput();
   int sentence_count = 0;
   bool in_sentence = false;
-  
+
   for (size_t i = 0; i < text.length(); ++i) {
     char current_symb = text[i];
-    
+
     if (current_symb == '.' || current_symb == '!' || current_symb == '?') {
       if (in_sentence) {
         sentence_count++;
@@ -39,11 +39,11 @@ bool KotelnikovaANumSentInLineSEQ::RunImpl() {
       in_sentence = true;
     }
   }
-  
+
   if (in_sentence) {
     sentence_count++;
   }
-  
+
   GetOutput() = sentence_count;
   return true;
 }

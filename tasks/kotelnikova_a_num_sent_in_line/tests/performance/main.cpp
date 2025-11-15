@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include <string>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
@@ -12,15 +13,16 @@ class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InTy
   InType input_data_{};
 
   void SetUp() override {
-    input_data_ = "This is a test sentence. How are you today? "
-                  "I hope everything is going well! Another sentence. "
-                  "Simple text for performance testing. Hello world. "
-                  "This is a test sentence. How are you today? "
-                  "I hope everything is going well! Another sentence. "
-                  "Simple text for performance testing. Hello world. "
-                  "This is a test sentence. How are you today? "
-                  "I hope everything is going well! Another sentence. "
-                  "Simple text for performance testing. Hello world.";
+    input_data_ =
+        "This is a test sentence. How are you today? "
+        "I hope everything is going well! Another sentence. "
+        "Simple text for performance testing. Hello world. "
+        "This is a test sentence. How are you today? "
+        "I hope everything is going well! Another sentence. "
+        "Simple text for performance testing. Hello world. "
+        "This is a test sentence. How are you today? "
+        "I hope everything is going well! Another sentence. "
+        "Simple text for performance testing. Hello world.";
   }
 
   bool CheckTestOutputData(OutType &output_data) final {
@@ -37,7 +39,8 @@ TEST_P(KotelnikovaARunPerfTestProcesses, RunPerfModes) {
 }
 
 const auto kAllPerfTasks =
-    ppc::util::MakeAllPerfTasks<InType, KotelnikovaANumSentInLineMPI, KotelnikovaANumSentInLineSEQ>(PPC_SETTINGS_kotelnikova_a_num_sent_in_line);
+    ppc::util::MakeAllPerfTasks<InType, KotelnikovaANumSentInLineMPI, KotelnikovaANumSentInLineSEQ>(
+        PPC_SETTINGS_kotelnikova_a_num_sent_in_line);
 
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
 
