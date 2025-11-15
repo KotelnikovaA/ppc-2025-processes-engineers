@@ -3,6 +3,7 @@
 #include <array>
 #include <string>
 #include <tuple>
+#include <cstddef>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
 #include "kotelnikova_a_num_sent_in_line/mpi/include/ops_mpi.hpp"
