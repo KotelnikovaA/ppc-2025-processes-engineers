@@ -1,7 +1,9 @@
 #include <gtest/gtest.h>
-#include <tuple>
+
 #include <array>
+#include <cstddef>
 #include <string>
+#include <tuple>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
 #include "kotelnikova_a_num_sent_in_line/mpi/include/ops_mpi.hpp"
@@ -16,10 +18,10 @@ class KotelnikovaARunFuncTestsProcesses : public ppc::util::BaseRunFuncTests<InT
   static std::string PrintTestParam(const TestType &test_param) {
     static int test_counter = 0;
     test_counter++;
-    
-    const std::string& text = std::get<0>(test_param);
+
+    const std::string &text = std::get<0>(test_param);
     int expected = std::get<1>(test_param);
-    
+
     std::string name = "test_" + std::to_string(test_counter);
     name += "_len" + std::to_string(text.length());
     name += "_exp" + std::to_string(expected);
@@ -52,17 +54,15 @@ TEST_P(KotelnikovaARunFuncTestsProcesses, MatmulFromPic) {
   ExecuteTest(GetParam());
 }
 
-const std::array<TestType, 5> kTestParam = {
-  std::make_tuple("Hello world.", 1),
-  std::make_tuple("First. Second.", 2), 
-  std::make_tuple("How are you? I'm fine!", 2),
-  std::make_tuple("What? When? Where?", 3),
-  std::make_tuple("Just one sentence.", 1),
-};
+const std::array<TestType, 6> kTestParam = {
+    std::make_tuple("Hello world.", 1),           std::make_tuple("First. Second.", 2),
+    std::make_tuple("How are you? I'm fine!", 2), std::make_tuple("What? When? Where?", 3),
+    std::make_tuple("Just one sentence.", 1),     std::make_tuple("Just. One. Sentence.", 3)};
 
-const auto kTestTasksList =
-    std::tuple_cat(ppc::util::AddFuncTask<KotelnikovaANumSentInLineMPI, InType>(kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line),
-                   ppc::util::AddFuncTask<KotelnikovaANumSentInLineSEQ, InType>(kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line));
+const auto kTestTasksList = std::tuple_cat(ppc::util::AddFuncTask<KotelnikovaANumSentInLineMPI, InType>(
+                                               kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line),
+                                           ppc::util::AddFuncTask<KotelnikovaANumSentInLineSEQ, InType>(
+                                               kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line));
 
 const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 
