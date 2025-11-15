@@ -58,29 +58,25 @@ TEST_P(KotelnikovaARunFuncTestsProcesses, SentenceCountingTests) {
 
 std::array<TestType, 6> LoadTestData() {
   std::array<TestType, 6> test_cases;
-  
-  std::array<std::pair<std::string, std::size_t>, 6> test_files = {{
-    {"test_1.txt", 1},
-    {"test_2.txt", 3}, 
-    {"test_3.txt", 8},
-    {"test_4.txt", 11},
-    {"test_5.txt", 4},
-    {"test_6.txt", 41}
-  }};
-  
+
+  std::array<std::pair<std::string, std::size_t>, 6> test_files = {{{"test_1.txt", 1},
+                                                                    {"test_2.txt", 3},
+                                                                    {"test_3.txt", 8},
+                                                                    {"test_4.txt", 11},
+                                                                    {"test_5.txt", 4},
+                                                                    {"test_6.txt", 41}}};
+
   for (size_t i = 0; i < test_files.size(); ++i) {
-    const auto& file_info = test_files[i];
-    
-    std::vector<std::string> possible_paths = {
-      "../../../tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.first,
-      "../tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.first,
-      "tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.first,
-      "kotelnikova_a_num_sent_in_line/data/" + file_info.first,
-      "data/" + file_info.first
-    };
-    
+    const auto &file_info = test_files[i];
+
+    std::vector<std::string> possible_paths = {"../../../tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.first,
+                                               "../tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.first,
+                                               "tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.first,
+                                               "kotelnikova_a_num_sent_in_line/data/" + file_info.first,
+                                               "data/" + file_info.first};
+
     bool file_loaded = false;
-    for (const auto& path : possible_paths) {
+    for (const auto &path : possible_paths) {
       std::ifstream file(path);
       if (file.is_open()) {
         std::stringstream ss;
@@ -92,25 +88,23 @@ std::array<TestType, 6> LoadTestData() {
         break;
       }
     }
-    
+
     if (!file_loaded) {
       std::cout << "WARNING: Using fallback data for " << file_info.first << std::endl;
       std::string fallback_text = "Fallback text for " + file_info.first + ".";
       test_cases[i] = std::make_tuple(fallback_text, file_info.second);
     }
   }
-  
+
   return test_cases;
 }
 
 const std::array<TestType, 6> kTestParam = LoadTestData();
 
-const auto kTestTasksList = std::tuple_cat(
-    ppc::util::AddFuncTask<KotelnikovaANumSentInLineMPI, InType>(
-        kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line),
-    ppc::util::AddFuncTask<KotelnikovaANumSentInLineSEQ, InType>(
-        kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line)
-);
+const auto kTestTasksList = std::tuple_cat(ppc::util::AddFuncTask<KotelnikovaANumSentInLineMPI, InType>(
+                                               kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line),
+                                           ppc::util::AddFuncTask<KotelnikovaANumSentInLineSEQ, InType>(
+                                               kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line));
 
 const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 

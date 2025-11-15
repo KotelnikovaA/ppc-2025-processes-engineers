@@ -18,7 +18,7 @@ KotelnikovaANumSentInLineMPI::KotelnikovaANumSentInLineMPI(const InType &in) {
 }
 
 bool KotelnikovaANumSentInLineMPI::ValidationImpl() {
-    if (GetInput().empty()) {
+  if (GetInput().empty()) {
     return false;
   }
   return true;
@@ -30,7 +30,7 @@ bool KotelnikovaANumSentInLineMPI::PreProcessingImpl() {
 
 bool KotelnikovaANumSentInLineMPI::RunImpl() {
   const std::string &text = GetInput();
-  
+
   int world_size = 0;
   int world_rank = 0;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -61,7 +61,8 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
   return true;
 }
 
-int KotelnikovaANumSentInLineMPI::CountSentencesInChunk(const std::string &text, int start, int end, int world_rank, int world_size) {
+int KotelnikovaANumSentInLineMPI::CountSentencesInChunk(const std::string &text, int start, int end, int world_rank,
+                                                        int world_size) {
   int count = 0;
   bool in_sentence = false;
 
@@ -74,7 +75,7 @@ int KotelnikovaANumSentInLineMPI::CountSentencesInChunk(const std::string &text,
   for (int i = start; i < end; ++i) {
     std::size_t idx = static_cast<std::size_t>(i);
     char c = text[idx];
-    
+
     if (IsSentenceEnd(c)) {
       if (in_sentence) {
         count++;

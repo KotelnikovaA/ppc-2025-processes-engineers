@@ -11,7 +11,7 @@
 namespace kotelnikova_a_num_sent_in_line {
 
 class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InType, OutType> {
-const std::size_t sentences_count_ = 1000;
+  const std::size_t sentences_count_ = 1000;
   InType input_data_;
 
   void SetUp() override {
@@ -36,27 +36,27 @@ const std::size_t sentences_count_ = 1000;
 
     for (std::size_t i = 0; i < sentences_count; ++i) {
       int words_count = words_in_sentence_dist(gen);
-      
+
       for (int w = 0; w < words_count; ++w) {
         int word_length = word_len_dist(gen);
         for (int j = 0; j < word_length; ++j) {
           result += static_cast<char>(char_dist(gen));
         }
-        
+
         if (w < words_count - 1) {
           result += ' ';
         }
       }
-      
+
       const char sentence_enders[] = {'.', '!', '?'};
       std::uniform_int_distribution<int> ender_dist(0, 2);
       result += sentence_enders[ender_dist(gen)];
-      
+
       if (i < sentences_count - 1) {
         result += ' ';
       }
     }
-    
+
     return result;
   }
 };
