@@ -1,9 +1,9 @@
 #include "kotelnikova_a_num_sent_in_line/seq/include/ops_seq.hpp"
 
+#include <cctype>
+#include <cstddef>
 #include <string>
 #include <vector>
-#include <cstddef>
-#include <cctype>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
 #include "util/include/util.hpp"

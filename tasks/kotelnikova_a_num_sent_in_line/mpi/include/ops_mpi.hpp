@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cctype>
-#include <string>
-#include <iostream>
 #include <algorithm>
+#include <cctype>
+#include <iostream>
+#include <string>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
 #include "task/include/task.hpp"
