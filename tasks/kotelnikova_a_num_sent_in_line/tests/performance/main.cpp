@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cstddef>
 #include <random>
 #include <string>
@@ -38,20 +39,20 @@ class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InTy
     for (std::size_t i = 0; i < sentences_count; ++i) {
       int words_count = words_in_sentence_dist(gen);
 
-      for (int w = 0; w < words_count; ++w) {
+      for (int word_index = 0; word_index < words_count; ++word_index) {
         int word_length = word_len_dist(gen);
         for (int j = 0; j < word_length; ++j) {
           result += static_cast<char>(char_dist(gen));
         }
 
-        if (w < words_count - 1) {
+        if (word_index < words_count - 1) {
           result += ' ';
         }
       }
 
-      const char sentence_enders[] = {'.', '!', '?'};
+      std::array<char, 3> sentence_enders = {'.', '!', '?'};
       std::uniform_int_distribution<int> ender_dist(0, 2);
-      result += sentence_enders[ender_dist(gen)];
+      result += sentence_enders.at(ender_dist(gen));
 
       if (i < sentences_count - 1) {
         result += ' ';

@@ -31,7 +31,7 @@ bool KotelnikovaANumSentInLineSEQ::RunImpl() {
     char current_symb = text[i];
 
     if (current_symb == '.' || current_symb == '!' || current_symb == '?') {
-      if (in_sentence != 0) {
+      if (in_sentence) {
         sentence_count++;
         in_sentence = false;
       }

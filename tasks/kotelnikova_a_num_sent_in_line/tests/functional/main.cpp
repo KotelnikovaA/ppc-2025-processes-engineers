@@ -3,9 +3,12 @@
 #include <array>
 #include <cstddef>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <tuple>
+#include <utility>
+#include <vector>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
 #include "kotelnikova_a_num_sent_in_line/mpi/include/ops_mpi.hpp"
@@ -56,24 +59,29 @@ TEST_P(KotelnikovaARunFuncTestsProcesses, SentenceCountingTests) {
   ExecuteTest(GetParam());
 }
 
+struct TestFile {
+  std::string filename;
+  std::size_t expected;
+};
+
 std::array<TestType, 6> LoadTestData() {
   std::array<TestType, 6> test_cases;
 
-  std::array<std::pair<std::string, std::size_t>, 6> test_files = {{{"test_1.txt", 1},
-                                                                    {"test_2.txt", 3},
-                                                                    {"test_3.txt", 8},
-                                                                    {"test_4.txt", 11},
-                                                                    {"test_5.txt", 4},
-                                                                    {"test_6.txt", 41}}};
+  std::array<TestFile, 6> test_files = {{{"test_1.txt", 1},
+                                         {"test_2.txt", 3},
+                                         {"test_3.txt", 8},
+                                         {"test_4.txt", 11},
+                                         {"test_5.txt", 4},
+                                         {"test_6.txt", 41}}};
 
   for (size_t i = 0; i < test_files.size(); ++i) {
-    const auto &file_info = test_files[i];
+    const auto &file_info = test_files.at(i);
 
-    std::vector<std::string> possible_paths = {"../../../tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.first,
-                                               "../tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.first,
-                                               "tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.first,
-                                               "kotelnikova_a_num_sent_in_line/data/" + file_info.first,
-                                               "data/" + file_info.first};
+    std::vector<std::string> possible_paths = {
+        "../../../tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.filename,
+        "../tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.filename,
+        "tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.filename,
+        "kotelnikova_a_num_sent_in_line/data/" + file_info.filename, "data/" + file_info.filename};
 
     bool file_loaded = false;
     for (const auto &path : possible_paths) {
@@ -82,17 +90,17 @@ std::array<TestType, 6> LoadTestData() {
         std::stringstream ss;
         ss << file.rdbuf();
         std::string content = ss.str();
-        test_cases[i] = std::make_tuple(content, file_info.second);
+        test_cases.at(i) = std::make_tuple(content, file_info.expected);
         file_loaded = true;
-        std::cout << "Successfully loaded: " << path << std::endl;
+        std::cout << "Successfully loaded: " << path << '\n';
         break;
       }
     }
 
     if (!file_loaded) {
-      std::cout << "WARNING: Using fallback data for " << file_info.first << std::endl;
-      std::string fallback_text = "Fallback text for " + file_info.first + ".";
-      test_cases[i] = std::make_tuple(fallback_text, file_info.second);
+      std::cout << "WARNING: Using fallback data for " << file_info.filename << '\n';
+      std::string fallback_text = "Fallback text for " + file_info.filename + ".";
+      test_cases.at(i) = std::make_tuple(fallback_text, file_info.expected);
     }
   }
 
