@@ -46,7 +46,7 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
   int end = start + chunk_size + (world_rank < remainder ? 1 : 0);
   end = std::min(end, total_length);
 
-  int local_count = CountSentencesInChunk(text, start, end, world_rank, world_size);
+  int local_count = CountSentencesInChunk(text, start, end, world_rank, world_size, total_length);
 
   int global_count = 0;
   MPI_Allreduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -56,7 +56,7 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
 }
 
 int KotelnikovaANumSentInLineMPI::CountSentencesInChunk(const std::string &text, int start, int end, int world_rank,
-                                                        int world_size) {
+                                                        int world_size, int total_length) {
   int count = 0;
   bool in_sentence = false;
 
@@ -66,8 +66,7 @@ int KotelnikovaANumSentInLineMPI::CountSentencesInChunk(const std::string &text,
   }
 
   for (int i = start; i < end; ++i) {
-    std::size_t idx = static_cast<std::size_t>(i);
-    char c = text[idx];
+    char c = text[static_cast<std::size_t>(i)];
 
     if (IsSentenceEnd(c)) {
       if (in_sentence) {
@@ -79,7 +78,7 @@ int KotelnikovaANumSentInLineMPI::CountSentencesInChunk(const std::string &text,
     }
   }
 
-  if (in_sentence && world_rank == (world_size - 1) && end == static_cast<int>(text.length())) {
+  if (in_sentence && world_rank == (world_size - 1) && end == total_length) {
     count++;
   }
 
@@ -91,8 +90,7 @@ bool KotelnikovaANumSentInLineMPI::IsSentenceEnd(char c) {
 }
 
 bool KotelnikovaANumSentInLineMPI::IsWordCharacter(char c) {
-  unsigned char uc = static_cast<unsigned char>(c);
-  return std::isalnum(uc) != 0;
+  return std::isalnum(static_cast<unsigned char>(c)) != 0;
 }
 
 std::size_t KotelnikovaANumSentInLineMPI::CountSentencesSequential(const std::string &text) {
