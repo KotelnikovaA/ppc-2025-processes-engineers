@@ -7,7 +7,6 @@
 #include <sstream>
 #include <string>
 #include <tuple>
-#include <utility>
 #include <vector>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
@@ -67,12 +66,12 @@ struct TestFile {
 std::array<TestType, 6> LoadTestData() {
   std::array<TestType, 6> test_cases;
 
-  std::array<TestFile, 6> test_files = {{{"test_1.txt", 1},
-                                         {"test_2.txt", 3},
-                                         {"test_3.txt", 8},
-                                         {"test_4.txt", 11},
-                                         {"test_5.txt", 4},
-                                         {"test_6.txt", 41}}};
+  std::array<TestFile, 6> test_files = {{{.filename = "test_1.txt", .expected = 1},
+                                         {.filename = "test_2.txt", .expected = 3},
+                                         {.filename = "test_3.txt", .expected = 8},
+                                         {.filename = "test_4.txt", .expected = 11},
+                                         {.filename = "test_5.txt", .expected = 4},
+                                         {.filename = "test_6.txt", .expected = 41}}};
 
   for (size_t i = 0; i < test_files.size(); ++i) {
     const auto &file_info = test_files.at(i);
