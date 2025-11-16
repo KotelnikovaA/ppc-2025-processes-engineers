@@ -35,7 +35,7 @@ bool KotelnikovaANumSentInLineSEQ::RunImpl() {
         sentence_count++;
         in_sentence = false;
       }
-    } else if (std::isalnum(static_cast<unsigned char>(current_symb))) {
+    } else if (std::isalnum(static_cast<unsigned char>(current_symb)) != 0) {
       in_sentence = true;
     }
   }
