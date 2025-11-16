@@ -15,10 +15,7 @@ KotelnikovaANumSentInLineSEQ::KotelnikovaANumSentInLineSEQ(const InType &in) {
 }
 
 bool KotelnikovaANumSentInLineSEQ::ValidationImpl() {
-  if (GetInput().empty()) {
-    return false;
-  }
-  return true;
+  return !GetInput().empty();
 }
 
 bool KotelnikovaANumSentInLineSEQ::PreProcessingImpl() {
@@ -34,7 +31,7 @@ bool KotelnikovaANumSentInLineSEQ::RunImpl() {
     char current_symb = text[i];
 
     if (current_symb == '.' || current_symb == '!' || current_symb == '?') {
-      if (in_sentence) {
+      if (in_sentence != 0) {
         sentence_count++;
         in_sentence = false;
       }

@@ -18,10 +18,7 @@ KotelnikovaANumSentInLineMPI::KotelnikovaANumSentInLineMPI(const InType &in) {
 }
 
 bool KotelnikovaANumSentInLineMPI::ValidationImpl() {
-  if (GetInput().empty()) {
-    return false;
-  }
-  return true;
+  return !GetInput().empty();
 }
 
 bool KotelnikovaANumSentInLineMPI::PreProcessingImpl() {
@@ -45,15 +42,12 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
   int chunk_size = total_length / world_size;
   int remainder = total_length % world_size;
 
-  // Вычисляем границы чанка
-  int start = world_rank * chunk_size + std::min(world_rank, remainder);
+  int start = (world_rank * chunk_size) + std::min(world_rank, remainder);
   int end = start + chunk_size + (world_rank < remainder ? 1 : 0);
   end = std::min(end, total_length);
 
-  // Подсчитываем предложения в чанке
   int local_count = CountSentencesInChunk(text, start, end, world_rank, world_size);
 
-  // Суммируем результаты
   int global_count = 0;
   MPI_Allreduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
@@ -66,7 +60,6 @@ int KotelnikovaANumSentInLineMPI::CountSentencesInChunk(const std::string &text,
   int count = 0;
   bool in_sentence = false;
 
-  // Определяем начальное состояние
   if (start > 0) {
     char prev_char = text[static_cast<std::size_t>(start - 1)];
     in_sentence = !IsSentenceEnd(prev_char) && IsWordCharacter(prev_char);
@@ -86,9 +79,7 @@ int KotelnikovaANumSentInLineMPI::CountSentencesInChunk(const std::string &text,
     }
   }
 
-  // ВАЖНО: если чанк заканчивается на незавершенном предложении И это последний чанк,
-  // то считаем это как предложение
-  if (in_sentence && world_rank == world_size - 1 && end == static_cast<int>(text.length())) {
+  if (in_sentence && world_rank == (world_size - 1) && end == static_cast<int>(text.length())) {
     count++;
   }
 
@@ -121,7 +112,6 @@ std::size_t KotelnikovaANumSentInLineMPI::CountSentencesSequential(const std::st
     }
   }
 
-  // ВАЖНО: если текст заканчивается на незавершенном предложении, считаем его
   if (in_sentence) {
     count++;
   }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cctype>
+#include <cstddef>
 #include <string>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
