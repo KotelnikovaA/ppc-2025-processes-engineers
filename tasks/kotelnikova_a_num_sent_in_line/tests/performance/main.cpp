@@ -13,7 +13,7 @@
 namespace kotelnikova_a_num_sent_in_line {
 
 class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InType, OutType> {
-  const std::size_t sentences_count_ = 1000;
+  const std::size_t sentences_count_ = 10000;
   InType input_data_;
 
   void SetUp() override {
@@ -30,11 +30,11 @@ class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InTy
 
   static std::string GenerateTestData(const std::size_t sentences_count, const int seed) {
     std::mt19937 gen(seed);
-    std::uniform_int_distribution<int> word_len_dist(3, 15);
-    std::uniform_int_distribution<int> words_in_sentence_dist(3, 12);
+    std::uniform_int_distribution<int> word_len_dist(7, 25);
+    std::uniform_int_distribution<int> words_in_sentence_dist(15, 30);
     std::uniform_int_distribution<int> char_dist('A', 'z');
     std::string result;
-    result.reserve(sentences_count * 100);
+    result.reserve(sentences_count * 800);
 
     for (std::size_t i = 0; i < sentences_count; ++i) {
       int words_count = words_in_sentence_dist(gen);
