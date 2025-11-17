@@ -1,10 +1,10 @@
 #include "kotelnikova_a_num_sent_in_line/seq/include/ops_seq.hpp"
 
-#include <vector>
+#include <cctype>
+#include <cstddef>
 #include <string>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
-#include "util/include/util.hpp"
 
 namespace kotelnikova_a_num_sent_in_line {
 
@@ -15,7 +15,7 @@ KotelnikovaANumSentInLineSEQ::KotelnikovaANumSentInLineSEQ(const InType &in) {
 }
 
 bool KotelnikovaANumSentInLineSEQ::ValidationImpl() {
-  return true;
+  return !GetInput().empty();
 }
 
 bool KotelnikovaANumSentInLineSEQ::PreProcessingImpl() {
@@ -23,27 +23,27 @@ bool KotelnikovaANumSentInLineSEQ::PreProcessingImpl() {
 }
 
 bool KotelnikovaANumSentInLineSEQ::RunImpl() {
-  const std::string& text = GetInput();
-  int sentence_count = 0;
+  const std::string &text = GetInput();
+  std::size_t sentence_count = 0;
   bool in_sentence = false;
-  
-  for (size_t i = 0; i < text.length(); ++i) {
+
+  for (std::size_t i = 0; i < text.length(); ++i) {
     char current_symb = text[i];
-    
+
     if (current_symb == '.' || current_symb == '!' || current_symb == '?') {
       if (in_sentence) {
         sentence_count++;
         in_sentence = false;
       }
-    } else if (std::isalnum(static_cast<unsigned char>(current_symb))) {
+    } else if (std::isalnum(static_cast<unsigned char>(current_symb)) != 0) {
       in_sentence = true;
     }
   }
-  
+
   if (in_sentence) {
     sentence_count++;
   }
-  
+
   GetOutput() = sentence_count;
   return true;
 }
