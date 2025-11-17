@@ -22,9 +22,6 @@ class KotelnikovaANumSentInLineMPI : public BaseTask {
   bool RunImpl() override;
   bool PostProcessingImpl() override;
 
-  static std::size_t CountSentencesSequential(const std::string &text);
-  static bool IsSentenceEnd(char c);
-  static bool IsWordCharacter(char c);
   static int CountSentencesInChunk(const std::string &text, int start, int end, int world_rank, int world_size,
                                    int total_length);
 };

@@ -33,11 +33,6 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-  if (world_size == 1) {
-    GetOutput() = CountSentencesSequential(text);
-    return true;
-  }
-
   int total_length = static_cast<int>(text.length());
   int chunk_size = total_length / world_size;
   int remainder = total_length % world_size;
@@ -62,55 +57,25 @@ int KotelnikovaANumSentInLineMPI::CountSentencesInChunk(const std::string &text,
 
   if (start > 0) {
     char prev_char = text[static_cast<std::size_t>(start - 1)];
-    in_sentence = !IsSentenceEnd(prev_char) && IsWordCharacter(prev_char);
+    bool is_prev_sentence_end = (prev_char == '.' || prev_char == '!' || prev_char == '?');
+    bool is_prev_word_char = (std::isalnum(static_cast<unsigned char>(prev_char)) != 0);
+    in_sentence = !is_prev_sentence_end && is_prev_word_char;
   }
 
   for (int i = start; i < end; ++i) {
     char c = text[static_cast<std::size_t>(i)];
 
-    if (IsSentenceEnd(c)) {
+    if (c == '.' || c == '!' || c == '?') {
       if (in_sentence) {
         count++;
         in_sentence = false;
       }
-    } else if (IsWordCharacter(c)) {
+    } else if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
       in_sentence = true;
     }
   }
 
   if (in_sentence && world_rank == (world_size - 1) && end == total_length) {
-    count++;
-  }
-
-  return count;
-}
-
-bool KotelnikovaANumSentInLineMPI::IsSentenceEnd(char c) {
-  return c == '.' || c == '!' || c == '?';
-}
-
-bool KotelnikovaANumSentInLineMPI::IsWordCharacter(char c) {
-  return std::isalnum(static_cast<unsigned char>(c)) != 0;
-}
-
-std::size_t KotelnikovaANumSentInLineMPI::CountSentencesSequential(const std::string &text) {
-  std::size_t count = 0;
-  bool in_sentence = false;
-
-  for (std::size_t i = 0; i < text.length(); ++i) {
-    char c = text[i];
-
-    if (IsSentenceEnd(c)) {
-      if (in_sentence) {
-        count++;
-        in_sentence = false;
-      }
-    } else if (IsWordCharacter(c)) {
-      in_sentence = true;
-    }
-  }
-
-  if (in_sentence) {
     count++;
   }
 
