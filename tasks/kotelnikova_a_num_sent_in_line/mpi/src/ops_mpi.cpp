@@ -41,7 +41,7 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
   int end = start + chunk_size + (world_rank < remainder ? 1 : 0);
   end = std::min(end, total_length);
 
-  int local_count = CountSentencesInChunk(text, start, end, world_rank, world_size, total_length);
+  int local_count = CountSentencesInChunk(text, start, end, total_length);
 
   int global_count = 0;
   MPI_Allreduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -50,8 +50,7 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
   return true;
 }
 
-int KotelnikovaANumSentInLineMPI::CountSentencesInChunk(const std::string &text, int start, int end, int world_rank,
-                                                        int world_size, int total_length) {
+int KotelnikovaANumSentInLineMPI::CountSentencesInChunk(const std::string &text, int start, int end, int total_length) {
   int count = 0;
   bool in_sentence = false;
 
@@ -75,7 +74,7 @@ int KotelnikovaANumSentInLineMPI::CountSentencesInChunk(const std::string &text,
     }
   }
 
-  if (in_sentence && world_rank == (world_size - 1) && end == total_length) {
+  if (in_sentence && end == total_length) {
     count++;
   }
 

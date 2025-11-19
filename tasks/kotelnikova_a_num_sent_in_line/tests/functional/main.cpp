@@ -82,7 +82,6 @@ std::array<TestType, 6> LoadTestData() {
         "tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.filename,
         "kotelnikova_a_num_sent_in_line/data/" + file_info.filename, "data/" + file_info.filename};
 
-    bool file_loaded = false;
     for (const auto &path : possible_paths) {
       std::ifstream file(path);
       if (file.is_open()) {
@@ -90,16 +89,8 @@ std::array<TestType, 6> LoadTestData() {
         ss << file.rdbuf();
         std::string content = ss.str();
         test_cases.at(i) = std::make_tuple(content, file_info.expected);
-        file_loaded = true;
-        std::cout << "Successfully loaded: " << path << '\n';
         break;
       }
-    }
-
-    if (!file_loaded) {
-      std::cout << "WARNING: Using fallback data for " << file_info.filename << '\n';
-      std::string fallback_text = "Fallback text for " + file_info.filename + ".";
-      test_cases.at(i) = std::make_tuple(fallback_text, file_info.expected);
     }
   }
 

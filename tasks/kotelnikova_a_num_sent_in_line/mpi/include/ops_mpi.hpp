@@ -21,8 +21,7 @@ class KotelnikovaANumSentInLineMPI : public BaseTask {
   bool RunImpl() override;
   bool PostProcessingImpl() override;
 
-  static int CountSentencesInChunk(const std::string &text, int start, int end, int world_rank, int world_size,
-                                   int total_length);
+  static int CountSentencesInChunk(const std::string &text, int start, int end, int total_length);
 };
 
 }  // namespace kotelnikova_a_num_sent_in_line
