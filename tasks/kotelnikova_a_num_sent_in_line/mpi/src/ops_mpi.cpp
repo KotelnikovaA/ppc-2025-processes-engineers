@@ -68,16 +68,18 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
     }
   }
   
-  for (int i = start; i < end; ++i) {
-    char c = text[static_cast<std::size_t>(i)];
+  if (start < end) {
+    for (int i = start; i < end; ++i) {
+      char c = text[static_cast<std::size_t>(i)];
 
-    if (c == '.' || c == '!' || c == '?') {
-      if (local_in_sentence) {
-        local_count++;
-        local_in_sentence = false;
+      if (c == '.' || c == '!' || c == '?') {
+        if (local_in_sentence) {
+          local_count++;
+          local_in_sentence = false;
+        }
+      } else if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
+        local_in_sentence = true;
       }
-    } else if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
-      local_in_sentence = true;
     }
   }
 
