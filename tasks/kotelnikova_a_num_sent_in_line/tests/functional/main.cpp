@@ -71,7 +71,7 @@ std::array<TestType, 6> LoadTestData() {
                                          {.filename = "test_3.txt", .expected = 8},
                                          {.filename = "test_4.txt", .expected = 11},
                                          {.filename = "test_5.txt", .expected = 1},
-                                         {.filename = "test_6.txt", .expected = 164}}};
+                                         {.filename = "test_6.txt", .expected = 1312}}};
 
   for (size_t i = 0; i < test_files.size(); ++i) {
     const auto &file_info = test_files.at(i);

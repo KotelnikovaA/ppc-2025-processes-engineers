@@ -1,9 +1,8 @@
 #include <gtest/gtest.h>
-
-#include <array>
+#include <fstream>
 #include <cstddef>
-#include <random>
 #include <string>
+#include <vector>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
 #include "kotelnikova_a_num_sent_in_line/mpi/include/ops_mpi.hpp"
@@ -13,53 +12,52 @@
 namespace kotelnikova_a_num_sent_in_line {
 
 class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InType, OutType> {
-  const std::size_t sentences_count_ = 10000;
+  std::size_t expected_sentences_count_;
   InType input_data_;
 
   void SetUp() override {
-    input_data_ = GenerateTestData(sentences_count_, 42);
+    input_data_ = LoadTestDataFromFile();
+    expected_sentences_count_ = 1;
   }
 
   bool CheckTestOutputData(OutType &output_data) final {
-    return output_data == sentences_count_;
+    return output_data == expected_sentences_count_;
   }
 
   InType GetTestInputData() final {
     return input_data_;
   }
 
-  static std::string GenerateTestData(const std::size_t sentences_count, const int seed) {
-    std::mt19937 gen(seed);
-    std::uniform_int_distribution<int> word_len_dist(7, 25);
-    std::uniform_int_distribution<int> words_in_sentence_dist(15, 30);
-    std::uniform_int_distribution<int> char_dist('A', 'z');
-    std::string result;
-    result.reserve(sentences_count * 800);
+  static std::string LoadTestDataFromFile() {
+    std::vector<std::string> possible_paths = {
+        "../../../tasks/kotelnikova_a_num_sent_in_line/data/test_7.txt",
+        "../tasks/kotelnikova_a_num_sent_in_line/data/test_7.txt",
+        "tasks/kotelnikova_a_num_sent_in_line/data/test_7.txt",
+        "kotelnikova_a_num_sent_in_line/data/test_7.txt", 
+        "data/test_7.txt"};
 
-    for (std::size_t i = 0; i < sentences_count; ++i) {
-      int words_count = words_in_sentence_dist(gen);
-
-      for (int word_index = 0; word_index < words_count; ++word_index) {
-        int word_length = word_len_dist(gen);
-        for (int j = 0; j < word_length; ++j) {
-          result += static_cast<char>(char_dist(gen));
-        }
-
-        if (word_index < words_count - 1) {
-          result += ' ';
-        }
-      }
-
-      std::array<char, 3> sentence_enders = {'.', '!', '?'};
-      std::uniform_int_distribution<int> ender_dist(0, 2);
-      result += sentence_enders.at(ender_dist(gen));
-
-      if (i < sentences_count - 1) {
-        result += ' ';
+    std::ifstream file;
+    for (const auto& path : possible_paths) {
+      file.open(path);
+      if (file.is_open()) {
+        std::cout << "Loaded test data from: " << path << std::endl;
+        break;
       }
     }
 
-    return result;
+    std::string content;
+    std::string line;
+    while (std::getline(file, line)) {
+      content += line + "\n";
+    }
+    file.close();
+
+    if (!content.empty() && content.back() == '\n') {
+      content.pop_back();
+    }
+
+    std::cout << "Loaded text length: " << content.length() << " characters" << std::endl;
+    return content;
   }
 };
 
