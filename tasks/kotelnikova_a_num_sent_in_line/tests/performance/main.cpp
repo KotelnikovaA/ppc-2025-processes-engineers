@@ -4,6 +4,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <iostream>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
 #include "kotelnikova_a_num_sent_in_line/mpi/include/ops_mpi.hpp"
@@ -13,12 +14,11 @@
 namespace kotelnikova_a_num_sent_in_line {
 
 class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InType, OutType> {
-  std::size_t expected_sentences_count_;
+  std::size_t expected_sentences_count_ = 1;
   InType input_data_;
 
   void SetUp() override {
     input_data_ = LoadTestDataFromFile();
-    expected_sentences_count_ = 1;
   }
 
   bool CheckTestOutputData(OutType &output_data) final {
@@ -55,7 +55,6 @@ class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InTy
       content.pop_back();
     }
 
-    std::cout << "Loaded text length: " << content.length() << " characters" << std::endl;
     return content;
   }
 };

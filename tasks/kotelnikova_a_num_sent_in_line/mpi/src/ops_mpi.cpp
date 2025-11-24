@@ -1,7 +1,7 @@
 #include "kotelnikova_a_num_sent_in_line/mpi/include/ops_mpi.hpp"
 
 #include <mpi.h>
-
+#include <cstddef>
 #include <algorithm>
 #include <cctype>
 #include <string>
@@ -42,7 +42,7 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
   } else {
     text.resize(static_cast<std::size_t>(total_length));
   }
-  MPI_Bcast(&text[0], total_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+  MPI_Bcast(text.data(), total_length, MPI_CHAR, 0, MPI_COMM_WORLD);
 
   int chunk_size = total_length / world_size;
   int remainder = total_length % world_size;
@@ -61,7 +61,8 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
       if (c == '.' || c == '!' || c == '?') {
         local_in_sentence = false;
         break;
-      } else if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
+      } 
+      if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
         local_in_sentence = true;
         break;
       }
@@ -78,7 +79,9 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
           local_count++;
           local_in_sentence = false;
         }
-      } else if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
+      }
+      
+      if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
         local_in_sentence = true;
       }
     }
