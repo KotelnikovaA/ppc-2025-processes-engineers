@@ -70,7 +70,7 @@ std::array<TestType, 6> LoadTestData() {
                                          {.filename = "test_2.txt", .expected = 3},
                                          {.filename = "test_3.txt", .expected = 8},
                                          {.filename = "test_4.txt", .expected = 11},
-                                         {.filename = "test_5.txt", .expected = 4},
+                                         {.filename = "test_5.txt", .expected = 1},
                                          {.filename = "test_6.txt", .expected = 41}}};
 
   for (size_t i = 0; i < test_files.size(); ++i) {

@@ -1,10 +1,8 @@
 #include "kotelnikova_a_num_sent_in_line/mpi/include/ops_mpi.hpp"
 
 #include <mpi.h>
-
 #include <algorithm>
 #include <cctype>
-#include <cstddef>
 #include <string>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
@@ -41,44 +39,46 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
   int end = start + chunk_size + (world_rank < remainder ? 1 : 0);
   end = std::min(end, total_length);
 
-  int local_count = CountSentencesInChunk(text, start, end, total_length);
+  int local_count = 0;
+  bool local_in_sentence = false;
+  
+  if (start > 0) {
+    int pos = start - 1;
+    while (pos >= 0) {
+      char c = text[static_cast<std::size_t>(pos)];
+      if (c == '.' || c == '!' || c == '?') {
+        local_in_sentence = false;
+        break;
+      } else if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
+        local_in_sentence = true;
+        break;
+      }
+      pos--;
+    }
+  }
+  
+  for (int i = start; i < end; ++i) {
+    char c = text[static_cast<std::size_t>(i)];
 
+    if (c == '.' || c == '!' || c == '?') {
+      if (local_in_sentence) {
+        local_count++;
+        local_in_sentence = false;
+      }
+    } else if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
+      local_in_sentence = true;
+    }
+  }
+
+  if (local_in_sentence && end == total_length) {
+    local_count++;
+  }
+ 
   int global_count = 0;
   MPI_Allreduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
   GetOutput() = static_cast<std::size_t>(global_count);
   return true;
-}
-
-int KotelnikovaANumSentInLineMPI::CountSentencesInChunk(const std::string &text, int start, int end, int total_length) {
-  int count = 0;
-  bool in_sentence = false;
-
-  if (start > 0) {
-    char prev_char = text[static_cast<std::size_t>(start - 1)];
-    bool is_prev_sentence_end = (prev_char == '.' || prev_char == '!' || prev_char == '?');
-    bool is_prev_word_char = (std::isalnum(static_cast<unsigned char>(prev_char)) != 0);
-    in_sentence = !is_prev_sentence_end && is_prev_word_char;
-  }
-
-  for (int i = start; i < end; ++i) {
-    char c = text[static_cast<std::size_t>(i)];
-
-    if (c == '.' || c == '!' || c == '?') {
-      if (in_sentence) {
-        count++;
-        in_sentence = false;
-      }
-    } else if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
-      in_sentence = true;
-    }
-  }
-
-  if (in_sentence && end == total_length) {
-    count++;
-  }
-
-  return count;
 }
 
 bool KotelnikovaANumSentInLineMPI::PostProcessingImpl() {
