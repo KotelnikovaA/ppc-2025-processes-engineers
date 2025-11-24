@@ -1,9 +1,10 @@
 #include "kotelnikova_a_num_sent_in_line/mpi/include/ops_mpi.hpp"
 
 #include <mpi.h>
-#include <cstddef>
+
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
 #include <string>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
@@ -61,7 +62,7 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
       if (c == '.' || c == '!' || c == '?') {
         local_in_sentence = false;
         break;
-      } 
+      }
       if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
         local_in_sentence = true;
         break;
@@ -80,7 +81,7 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
           local_in_sentence = false;
         }
       }
-      
+
       if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
         local_in_sentence = true;
       }

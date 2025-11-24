@@ -2,9 +2,9 @@
 
 #include <cstddef>
 #include <fstream>
+#include <iostream>
 #include <string>
 #include <vector>
-#include <iostream>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
 #include "kotelnikova_a_num_sent_in_line/mpi/include/ops_mpi.hpp"
