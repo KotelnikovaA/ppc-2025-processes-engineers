@@ -94,25 +94,25 @@
 
 Файловая структура:
 
-kotelnikova_a_num_sent_in_line/
-├── common/include
-│   └── common.hpp                  # Базовые определения типов
-├── data/
-│   ├── test_1.txt                  # Тестовые данные
-│   ├── test_2.txt
-│   ├── test_3.txt
-│   ├── test_4.txt
-│   ├── test_5.txt
-│   └── test_6.txt
-├── mpi/
-│   ├── include/ops_mpi.hpp         # MPI версия  
-│   └── src/ops_mpi.cpp
-├── seq/
-│   ├── include/ops_seq.hpp         # Последовательная версия
-│   └── src/ops_seq.cpp
-└── tests/
-    ├── functional/main.cpp         # Функциональные тесты
-    └── performance/main.cpp        # Производительные тесты
+kotelnikova_a_num_sent_in_line/  
+├── common/include  
+│   └── common.hpp                  # Базовые определения типов  
+├── data/  
+│   ├── test_1.txt                  # Тестовые данные  
+│   ├── test_2.txt  
+│   ├── test_3.txt  
+│   ├── test_4.txt  
+│   ├── test_5.txt  
+│   └── test_6.txt  
+├── mpi/  
+│   ├── include/ops_mpi.hpp         # MPI версия    
+│   └── src/ops_mpi.cpp  
+├── seq/  
+│   ├── include/ops_seq.hpp         # Последовательная версия  
+│   └── src/ops_seq.cpp  
+└── tests/  
+    ├── functional/main.cpp         # Функциональные тесты  
+    └── performance/main.cpp        # Производительные тесты  
 
 Ключевые классы:
 - KotelnikovaANumSentInLineSEQ - последовательная реализация.
