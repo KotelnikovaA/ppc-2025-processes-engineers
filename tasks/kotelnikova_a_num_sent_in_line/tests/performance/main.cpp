@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
-#include <fstream>
+
 #include <cstddef>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -29,15 +30,13 @@ class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InTy
   }
 
   static std::string LoadTestDataFromFile() {
-    std::vector<std::string> possible_paths = {
-        "../../../tasks/kotelnikova_a_num_sent_in_line/data/test_7.txt",
-        "../tasks/kotelnikova_a_num_sent_in_line/data/test_7.txt",
-        "tasks/kotelnikova_a_num_sent_in_line/data/test_7.txt",
-        "kotelnikova_a_num_sent_in_line/data/test_7.txt", 
-        "data/test_7.txt"};
+    std::vector<std::string> possible_paths = {"../../../tasks/kotelnikova_a_num_sent_in_line/data/test_7.txt",
+                                               "../tasks/kotelnikova_a_num_sent_in_line/data/test_7.txt",
+                                               "tasks/kotelnikova_a_num_sent_in_line/data/test_7.txt",
+                                               "kotelnikova_a_num_sent_in_line/data/test_7.txt", "data/test_7.txt"};
 
     std::ifstream file;
-    for (const auto& path : possible_paths) {
+    for (const auto &path : possible_paths) {
       file.open(path);
       if (file.is_open()) {
         std::cout << "Loaded test data from: " << path << std::endl;

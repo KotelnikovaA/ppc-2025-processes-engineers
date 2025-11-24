@@ -1,6 +1,7 @@
 #include "kotelnikova_a_num_sent_in_line/mpi/include/ops_mpi.hpp"
 
 #include <mpi.h>
+
 #include <algorithm>
 #include <cctype>
 #include <string>
@@ -52,7 +53,7 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
 
   int local_count = 0;
   bool local_in_sentence = false;
-  
+
   if (start > 0) {
     int pos = start - 1;
     while (pos >= 0) {
@@ -67,7 +68,7 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
       pos--;
     }
   }
-  
+
   if (start < end) {
     for (int i = start; i < end; ++i) {
       char c = text[static_cast<std::size_t>(i)];
@@ -86,7 +87,7 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
   if (local_in_sentence && end == total_length) {
     local_count++;
   }
- 
+
   int global_count = 0;
   MPI_Allreduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
