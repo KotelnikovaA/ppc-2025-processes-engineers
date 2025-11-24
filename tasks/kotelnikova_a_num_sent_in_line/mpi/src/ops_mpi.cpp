@@ -24,14 +24,25 @@ bool KotelnikovaANumSentInLineMPI::PreProcessingImpl() {
 }
 
 bool KotelnikovaANumSentInLineMPI::RunImpl() {
-  const std::string &text = GetInput();
-
   int world_size = 0;
   int world_rank = 0;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-  int total_length = static_cast<int>(text.length());
+  int total_length = 0;
+  if (world_rank == 0) {
+    total_length = static_cast<int>(GetInput().length());
+  }
+  MPI_Bcast(&total_length, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+  std::string text;
+  if (world_rank == 0) {
+    text = GetInput();
+  } else {
+    text.resize(static_cast<std::size_t>(total_length));
+  }
+  MPI_Bcast(&text[0], total_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+
   int chunk_size = total_length / world_size;
   int remainder = total_length % world_size;
 
