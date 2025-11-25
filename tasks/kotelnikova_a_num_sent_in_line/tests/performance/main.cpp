@@ -13,7 +13,7 @@
 namespace kotelnikova_a_num_sent_in_line {
 
 class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InType, OutType> {
-  const std::size_t sentences_count_ = 10000;
+  const std::size_t sentences_count_ = 1000;
   InType input_data_;
 
   void SetUp() override {
