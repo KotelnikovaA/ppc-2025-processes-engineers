@@ -60,8 +60,6 @@ TEST_P(KotelnikovaARunPerfTestProcesses, RunPerfModes) {
   ExecuteTest(GetParam());
 }
 
-namespace {
-
 const auto kAllPerfTasks =
     ppc::util::MakeAllPerfTasks<InType, KotelnikovaANumSentInLineMPI, KotelnikovaANumSentInLineSEQ>(
         PPC_SETTINGS_kotelnikova_a_num_sent_in_line);
@@ -71,7 +69,5 @@ const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
 const auto kPerfTestName = KotelnikovaARunPerfTestProcesses::CustomPerfTestName;
 
 INSTANTIATE_TEST_SUITE_P(RunModeTests, KotelnikovaARunPerfTestProcesses, kGtestValues, kPerfTestName);
-
-}  // namespace
 
 }  // namespace kotelnikova_a_num_sent_in_line
