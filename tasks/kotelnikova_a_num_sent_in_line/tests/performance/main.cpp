@@ -61,8 +61,7 @@ TEST_P(KotelnikovaARunPerfTestProcesses, RunPerfModes) {
 }
 
 const auto kAllPerfTasks =
-    ppc::util::MakeAllPerfTasks<InType, KotelnikovaANumSentInLineMPI, KotelnikovaANumSentInLineSEQ>(
-        PPC_SETTINGS_kotelnikova_a_num_sent_in_line);
+    ppc::util::MakeAllPerfTasks<InType, KotelnikovaANumSentInLineMPI, KotelnikovaANumSentInLineSEQ>(PPC_SETTINGS_kotelnikova_a_num_sent_in_line);
 
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
 

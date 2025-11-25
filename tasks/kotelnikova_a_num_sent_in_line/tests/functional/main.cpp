@@ -100,17 +100,15 @@ std::array<TestType, 7> LoadTestData() {
 
 const std::array<TestType, 7> kTestParam = LoadTestData();
 
-const auto kTestTasksList = std::tuple_cat(ppc::util::AddFuncTask<KotelnikovaANumSentInLineMPI, InType>(
-                                               kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line),
-                                           ppc::util::AddFuncTask<KotelnikovaANumSentInLineSEQ, InType>(
-                                               kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line));
+const auto kTestTasksList =
+    std::tuple_cat(ppc::util::AddFuncTask<KotelnikovaANumSentInLineMPI, InType>(kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line),
+                   ppc::util::AddFuncTask<KotelnikovaANumSentInLineSEQ, InType>(kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line));
 
 const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 
 const auto kPerfTestName = KotelnikovaARunFuncTestsProcesses::PrintFuncTestName<KotelnikovaARunFuncTestsProcesses>;
 
 INSTANTIATE_TEST_SUITE_P(SentenceCountingTests, KotelnikovaARunFuncTestsProcesses, kGtestValues, kPerfTestName);
-
 }  // namespace
 
 }  // namespace kotelnikova_a_num_sent_in_line
