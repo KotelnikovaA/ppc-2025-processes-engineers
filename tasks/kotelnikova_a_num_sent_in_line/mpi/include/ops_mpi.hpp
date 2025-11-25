@@ -17,6 +17,10 @@ class KotelnikovaANumSentInLineMPI : public BaseTask {
   bool PreProcessingImpl() override;
   bool RunImpl() override;
   bool PostProcessingImpl() override;
+
+  int CountLocalSentences(const std::string &text, int start, int end, int total_length);
+  bool BorderControl(const std::string &text, int start);
+  void ProcessingPart(const std::string &text, int start, int end, int &local_count, bool &local_in_sentence);
 };
 
 }  // namespace kotelnikova_a_num_sent_in_line
