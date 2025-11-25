@@ -35,6 +35,12 @@ class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InTy
                                                "kotelnikova_a_num_sent_in_line/data/test_7.txt", "data/test_7.txt"};
 
     std::ifstream file;
+    for (const auto &path : possible_paths) {
+      file.open(path);
+      if (file.is_open()) {
+        break;
+      }
+    }
     std::string content;
     std::string line;
     while (std::getline(file, line)) {

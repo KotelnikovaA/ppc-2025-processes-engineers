@@ -20,7 +20,7 @@ class KotelnikovaANumSentInLineMPI : public BaseTask {
   bool RunImpl() override;
   bool PostProcessingImpl() override;
 
-  int CountLocalSentences(const std::string &text, int start, int end, int total_length);
+  static int CountLocalSentences(const std::string &text, int start, int end, int total_length);
   static bool BorderControl(const std::string &text, int start);
   static void ProcessingPart(const std::string &text, int start, int end, int &local_count, bool &local_in_sentence);
 };
