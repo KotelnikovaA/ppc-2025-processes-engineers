@@ -13,6 +13,7 @@
 namespace kotelnikova_a_num_sent_in_line {
 
 class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InType, OutType> {
+ protected:
   InType input_data_;
   std::size_t expected_count_;
 
@@ -36,6 +37,9 @@ class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InTy
     buffer << file.rdbuf();
     return buffer.str();
   }
+
+ public:
+  KotelnikovaARunPerfTestProcesses() : expected_count_(0) {}
 };
 
 TEST_P(KotelnikovaARunPerfTestProcesses, RunPerfModes) {

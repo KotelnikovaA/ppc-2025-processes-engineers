@@ -57,8 +57,6 @@ bool KotelnikovaANumSentInLineMPI::RunImpl() {
 
   if (start < end) {
     local_count = CountLocalSentences(text, start, end, has_unfinished);
-  } else {
-    has_unfinished = CheckUnfinishedAtBoundary(text, start, total_length);
   }
 
   std::vector<int> all_counts(static_cast<std::size_t>(world_size));
@@ -119,57 +117,6 @@ bool KotelnikovaANumSentInLineMPI::CheckSentenceStateAtStart(const std::string &
   return false;
 }
 
-bool KotelnikovaANumSentInLineMPI::CheckUnfinishedAtBoundary(const std::string &text, int position, int total_length) {
-  if (position <= 0 || position > total_length) {
-    return false;
-  }
-
-  return CheckSentenceStateAtStart(text, position);
-}
-
-int KotelnikovaANumSentInLineMPI::SumAllCounts(const std::vector<int> &all_counts) {
-  int sum = 0;
-  for (int count : all_counts) {
-    sum += count;
-  }
-  return sum;
-}
-
-int KotelnikovaANumSentInLineMPI::CountBoundarySentences(const std::vector<int> &all_unfinished,
-                                                         const std::string &text, int chunk_size, int remainder,
-                                                         int total_length, int world_size) {
-  int count = 0;
-  for (int i = 0; i < world_size - 1; ++i) {
-    if (all_unfinished[i] == 1) {
-      int next_start = ((i + 1) * chunk_size) + std::min(i + 1, remainder);
-      if (next_start < total_length) {
-        if (ScanForPunctuation(text, next_start, total_length)) {
-          count++;
-        }
-      }
-    }
-  }
-  return count;
-}
-
-int KotelnikovaANumSentInLineMPI::CountLastSentence(const std::vector<int> &all_unfinished, int chunk_size,
-                                                    int remainder, int total_length, int world_size) {
-  if (world_size <= 0) {
-    return 0;
-  }
-
-  int last_rank = world_size - 1;
-  if (all_unfinished[last_rank] != 1) {
-    return 0;
-  }
-
-  int last_end =
-      (last_rank * chunk_size) + std::min(last_rank, remainder) + chunk_size + (last_rank < remainder ? 1 : 0);
-  last_end = std::min(last_end, total_length);
-
-  return (last_end == total_length) ? 1 : 0;
-}
-
 int KotelnikovaANumSentInLineMPI::CalculateGlobalCount(const std::vector<int> &all_counts,
                                                        const std::vector<int> &all_unfinished, const std::string &text,
                                                        int chunk_size, int remainder, int total_length,
@@ -181,42 +128,43 @@ int KotelnikovaANumSentInLineMPI::CalculateGlobalCount(const std::vector<int> &a
   }
 
   for (int i = 0; i < world_size - 1; ++i) {
-    if (all_unfinished[i] == 1) {
-      int next_start = ((i + 1) * chunk_size) + std::min(i + 1, remainder);
-      if (next_start < total_length) {
-        if (ScanForPunctuation(text, next_start, total_length)) {
-          global_count++;
-        }
+    if (all_unfinished[i] == 0) {
+      continue;
+    }
+
+    int next_start = ((i + 1) * chunk_size) + std::min(i + 1, remainder);
+    if (next_start >= total_length) {
+      continue;
+    }
+
+    bool found_punctuation = false;
+    for (int j = next_start; j < total_length; ++j) {
+      char c = text[static_cast<std::size_t>(j)];
+
+      if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+        continue;
       }
+
+      if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
+        break;
+      }
+
+      if (c == '.' || c == '!' || c == '?') {
+        found_punctuation = true;
+        break;
+      }
+    }
+
+    if (found_punctuation) {
+      global_count++;
     }
   }
 
-  if (world_size > 0) {
-    int last_rank = world_size - 1;
-    if (all_unfinished[last_rank] == 1) {
-      int last_end =
-          (last_rank * chunk_size) + std::min(last_rank, remainder) + chunk_size + (last_rank < remainder ? 1 : 0);
-      last_end = std::min(last_end, total_length);
-
-      if (last_end == total_length) {
-        global_count++;
-      }
-    }
+  if (world_size > 0 && all_unfinished[world_size - 1] == 1) {
+    global_count++;
   }
 
   return global_count;
-}
-
-bool KotelnikovaANumSentInLineMPI::ScanForPunctuation(const std::string &text, int start, int total_length) {
-  for (int i = start; i < total_length; ++i) {
-    char c = text[static_cast<std::size_t>(i)];
-
-    if (c != ' ' && c != '\t' && c != '\n' && c != '\r') {
-      return (c == '.' || c == '!' || c == '?');
-    }
-  }
-
-  return false;
 }
 
 bool KotelnikovaANumSentInLineMPI::PostProcessingImpl() {
