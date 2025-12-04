@@ -14,20 +14,20 @@ namespace kotelnikova_a_num_sent_in_line {
 
 class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InType, OutType> {
  protected:
-  InType input_data_;
-  std::size_t expected_count_;
+  InType input_data;
+  std::size_t expected_count;
 
   void SetUp() override {
-    input_data_ = LoadTestData();
-    expected_count_ = 1312;
+    input_data = LoadTestData();
+    expected_count = 1312;
   }
 
   bool CheckTestOutputData(OutType &output_data) final {
-    return output_data == expected_count_;
+    return output_data == expected_count;
   }
 
   InType GetTestInputData() final {
-    return input_data_;
+    return input_data;
   }
 
   static std::string LoadTestData() {
@@ -37,9 +37,6 @@ class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InTy
     buffer << file.rdbuf();
     return buffer.str();
   }
-
- public:
-  KotelnikovaARunPerfTestProcesses() : expected_count_(0) {}
 };
 
 TEST_P(KotelnikovaARunPerfTestProcesses, RunPerfModes) {

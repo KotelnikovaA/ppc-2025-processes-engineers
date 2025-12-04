@@ -24,6 +24,7 @@ bool KotelnikovaANumSentInLineSEQ::PreProcessingImpl() {
 
 bool KotelnikovaANumSentInLineSEQ::RunImpl() {
   const std::string &text = GetInput();
+
   std::size_t sentence_count = 0;
   bool in_sentence = false;
 
