@@ -1,8 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <array>
-#include <cstddef>
-#include <random>
+#include <fstream>
+#include <sstream>
 #include <string>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
@@ -13,53 +12,28 @@
 namespace kotelnikova_a_num_sent_in_line {
 
 class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InType, OutType> {
-  const std::size_t sentences_count_ = 1000;
   InType input_data_;
+  std::size_t expected_count_;
 
   void SetUp() override {
-    input_data_ = GenerateTestData(sentences_count_, 42);
+    input_data_ = LoadTestData();
+    expected_count_ = 1312;
   }
 
   bool CheckTestOutputData(OutType &output_data) final {
-    return output_data == sentences_count_;
+    return output_data == expected_count_;
   }
 
   InType GetTestInputData() final {
     return input_data_;
   }
 
-  static std::string GenerateTestData(const std::size_t sentences_count, const int seed) {
-    std::mt19937 gen(seed);
-    std::uniform_int_distribution<int> word_len_dist(7, 25);
-    std::uniform_int_distribution<int> words_in_sentence_dist(15, 30);
-    std::uniform_int_distribution<int> char_dist('A', 'z');
-    std::string result;
-    result.reserve(sentences_count * 800);
-
-    for (std::size_t i = 0; i < sentences_count; ++i) {
-      int words_count = words_in_sentence_dist(gen);
-
-      for (int word_index = 0; word_index < words_count; ++word_index) {
-        int word_length = word_len_dist(gen);
-        for (int j = 0; j < word_length; ++j) {
-          result += static_cast<char>(char_dist(gen));
-        }
-
-        if (word_index < words_count - 1) {
-          result += ' ';
-        }
-      }
-
-      std::array<char, 3> sentence_enders = {'.', '!', '?'};
-      std::uniform_int_distribution<int> ender_dist(0, 2);
-      result += sentence_enders.at(ender_dist(gen));
-
-      if (i < sentences_count - 1) {
-        result += ' ';
-      }
-    }
-
-    return result;
+  static std::string LoadTestData() {
+    std::string path = "tasks/kotelnikova_a_num_sent_in_line/data/test_6.txt";
+    std::ifstream file(path);
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
   }
 };
 
