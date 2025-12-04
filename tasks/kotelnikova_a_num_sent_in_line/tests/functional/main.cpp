@@ -63,10 +63,10 @@ struct TestFile {
   std::size_t expected;
 };
 
-std::array<TestType, 7> LoadTestData() {
-  std::array<TestType, 7> test_cases;
+std::array<TestType, 6> LoadTestData() {
+  std::array<TestType, 6> test_cases;
 
-  std::array<TestFile, 7> test_files = {{{.filename = "test_1.txt", .expected = 1},
+  std::array<TestFile, 6> test_files = {{{.filename = "test_1.txt", .expected = 1},
                                          {.filename = "test_2.txt", .expected = 3},
                                          {.filename = "test_3.txt", .expected = 8},
                                          {.filename = "test_4.txt", .expected = 11},
@@ -93,11 +93,12 @@ std::array<TestType, 7> LoadTestData() {
   return test_cases;
 }
 
-const std::array<TestType, 7> kTestParam = LoadTestData();
+const std::array<TestType, 6> kTestParam = LoadTestData();
 
-const auto kTestTasksList =
-    std::tuple_cat(ppc::util::AddFuncTask<KotelnikovaANumSentInLineMPI, InType>(kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line),
-                   ppc::util::AddFuncTask<KotelnikovaANumSentInLineSEQ, InType>(kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line));
+const auto kTestTasksList = std::tuple_cat(ppc::util::AddFuncTask<KotelnikovaANumSentInLineMPI, InType>(
+                                               kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line),
+                                           ppc::util::AddFuncTask<KotelnikovaANumSentInLineSEQ, InType>(
+                                               kTestParam, PPC_SETTINGS_kotelnikova_a_num_sent_in_line));
 
 const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 

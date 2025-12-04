@@ -81,30 +81,6 @@ int KotelnikovaANumSentInLineMPI::CountLocalSentences(const std::string &text, i
 
   in_sentence = CheckSentenceStateAtStart(text, start);
 
-  if (local_in_sentence && end == total_length) {
-    local_count++;
-  }
-
-  return local_count;
-}
-
-bool KotelnikovaANumSentInLineMPI::BorderControl(const std::string &text, int start) {
-  int pos = start - 1;
-  while (pos >= 0) {
-    char c = text[static_cast<std::size_t>(pos)];
-    if (c == '.' || c == '!' || c == '?') {
-      return false;
-    }
-    if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
-      return true;
-    }
-    pos--;
-  }
-  return false;
-}
-
-void KotelnikovaANumSentInLineMPI::ProcessingPart(const std::string &text, int start, int end, int &local_count,
-                                                  bool &local_in_sentence) {
   for (int i = start; i < end; ++i) {
     char c = text[static_cast<std::size_t>(i)];
 
@@ -113,12 +89,11 @@ void KotelnikovaANumSentInLineMPI::ProcessingPart(const std::string &text, int s
         local_count++;
         in_sentence = false;
       }
-    }
-
-    if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
-      local_in_sentence = true;
+    } else if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
+      in_sentence = true;
     }
   }
+
   has_unfinished = in_sentence;
   return local_count;
 }
@@ -191,17 +166,11 @@ int KotelnikovaANumSentInLineMPI::CalculateGlobalCount(const std::vector<int> &a
 }
 
 bool KotelnikovaANumSentInLineMPI::ScanForPunctuation(const std::string &text, int start, int total_length) {
-  int limit = std::min(start + 100, total_length);
-
-  for (int i = start; i < limit; ++i) {
+  for (int i = start; i < total_length; ++i) {
     char c = text[static_cast<std::size_t>(i)];
 
-    if (c == '.' || c == '!' || c == '?') {
-      return true;
-    }
-
-    if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
-      return false;
+    if (c != ' ' && c != '\t' && c != '\n' && c != '\r') {
+      return (c == '.' || c == '!' || c == '?');
     }
   }
 
