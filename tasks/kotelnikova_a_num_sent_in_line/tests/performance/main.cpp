@@ -15,7 +15,7 @@ namespace kotelnikova_a_num_sent_in_line {
 class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InType, OutType> {
  protected:
   InType input_data;
-  std::size_t expected_count;
+  std::size_t expected_count{0};
 
   void SetUp() override {
     input_data = LoadTestData();
