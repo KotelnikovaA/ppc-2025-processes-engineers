@@ -19,7 +19,7 @@ class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InTy
 
   void SetUp() override {
     input_data = LoadTestData();
-    expected_count = 1312;
+    expected_count = 1;
   }
 
   bool CheckTestOutputData(OutType &output_data) final {
@@ -31,7 +31,7 @@ class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InTy
   }
 
   static std::string LoadTestData() {
-    std::string path = "tasks/kotelnikova_a_num_sent_in_line/data/test_6.txt";
+    std::string path = "tasks/kotelnikova_a_num_sent_in_line/data/test_7.txt";
     std::ifstream file(path);
     std::stringstream buffer;
     buffer << file.rdbuf();
