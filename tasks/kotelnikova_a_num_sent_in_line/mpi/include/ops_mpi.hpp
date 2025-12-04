@@ -25,9 +25,15 @@ class KotelnikovaANumSentInLineMPI : public BaseTask {
   static bool CheckSentenceStateAtStart(const std::string &text, int start);
   static bool CheckUnfinishedAtBoundary(const std::string &text, int position, int total_length);
   static bool ScanForPunctuation(const std::string &text, int start, int total_length);
+
   static int CalculateGlobalCount(const std::vector<int> &all_counts, const std::vector<int> &all_unfinished,
                                   const std::string &text, int chunk_size, int remainder, int total_length,
                                   int world_size);
+  static int SumAllCounts(const std::vector<int> &all_counts);
+  static int CountBoundarySentences(const std::vector<int> &all_unfinished, const std::string &text, int chunk_size,
+                                    int remainder, int total_length, int world_size);
+  static int CountLastSentence(const std::vector<int> &all_unfinished, int chunk_size, int remainder, int total_length,
+                               int world_size);
 };
 
 }  // namespace kotelnikova_a_num_sent_in_line

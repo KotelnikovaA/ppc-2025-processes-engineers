@@ -127,6 +127,49 @@ bool KotelnikovaANumSentInLineMPI::CheckUnfinishedAtBoundary(const std::string &
   return CheckSentenceStateAtStart(text, position);
 }
 
+int KotelnikovaANumSentInLineMPI::SumAllCounts(const std::vector<int> &all_counts) {
+  int sum = 0;
+  for (int count : all_counts) {
+    sum += count;
+  }
+  return sum;
+}
+
+int KotelnikovaANumSentInLineMPI::CountBoundarySentences(const std::vector<int> &all_unfinished,
+                                                         const std::string &text, int chunk_size, int remainder,
+                                                         int total_length, int world_size) {
+  int count = 0;
+  for (int i = 0; i < world_size - 1; ++i) {
+    if (all_unfinished[i] == 1) {
+      int next_start = ((i + 1) * chunk_size) + std::min(i + 1, remainder);
+      if (next_start < total_length) {
+        if (ScanForPunctuation(text, next_start, total_length)) {
+          count++;
+        }
+      }
+    }
+  }
+  return count;
+}
+
+int KotelnikovaANumSentInLineMPI::CountLastSentence(const std::vector<int> &all_unfinished, int chunk_size,
+                                                    int remainder, int total_length, int world_size) {
+  if (world_size <= 0) {
+    return 0;
+  }
+
+  int last_rank = world_size - 1;
+  if (all_unfinished[last_rank] != 1) {
+    return 0;
+  }
+
+  int last_end =
+      (last_rank * chunk_size) + std::min(last_rank, remainder) + chunk_size + (last_rank < remainder ? 1 : 0);
+  last_end = std::min(last_end, total_length);
+
+  return (last_end == total_length) ? 1 : 0;
+}
+
 int KotelnikovaANumSentInLineMPI::CalculateGlobalCount(const std::vector<int> &all_counts,
                                                        const std::vector<int> &all_unfinished, const std::string &text,
                                                        int chunk_size, int remainder, int total_length,

@@ -3,7 +3,6 @@
 #include <array>
 #include <cstddef>
 #include <fstream>
-#include <iostream>
 #include <sstream>
 #include <string>
 #include <tuple>
@@ -101,6 +100,7 @@ const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 const auto kPerfTestName = KotelnikovaARunFuncTestsProcesses::PrintFuncTestName<KotelnikovaARunFuncTestsProcesses>;
 
 INSTANTIATE_TEST_SUITE_P(SentenceCountingTests, KotelnikovaARunFuncTestsProcesses, kGtestValues, kPerfTestName);
+
 }  // namespace
 
 }  // namespace kotelnikova_a_num_sent_in_line
