@@ -6,6 +6,7 @@
 #include <cctype>
 #include <cstddef>
 #include <string>
+#include <vector>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
 
@@ -139,10 +140,8 @@ int KotelnikovaANumSentInLineMPI::CalculateGlobalCount(const std::vector<int> &a
   for (int i = 0; i < world_size - 1; ++i) {
     if (all_unfinished[i] == 1) {
       int next_start = ((i + 1) * chunk_size) + std::min(i + 1, remainder);
-
       if (next_start < total_length) {
-        bool found_punctuation = ScanForPunctuation(text, next_start, total_length);
-        if (found_punctuation) {
+        if (ScanForPunctuation(text, next_start, total_length)) {
           global_count++;
         }
       }

@@ -7,7 +7,6 @@
 #include <sstream>
 #include <string>
 #include <tuple>
-#include <vector>
 
 #include "kotelnikova_a_num_sent_in_line/common/include/common.hpp"
 #include "kotelnikova_a_num_sent_in_line/mpi/include/ops_mpi.hpp"
@@ -84,9 +83,6 @@ std::array<TestType, 6> LoadTestData() {
       ss << file.rdbuf();
       std::string content = ss.str();
       test_cases.at(i) = std::make_tuple(content, file_info.expected);
-    } else {
-      std::cerr << "Error: Cannot open file " << path << std::endl;
-      test_cases.at(i) = std::make_tuple("", file_info.expected);
     }
   }
 
