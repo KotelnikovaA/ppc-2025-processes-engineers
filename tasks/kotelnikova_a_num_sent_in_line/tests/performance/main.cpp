@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <cstddef>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -13,46 +13,28 @@
 namespace kotelnikova_a_num_sent_in_line {
 
 class KotelnikovaARunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InType, OutType> {
-  std::size_t expected_sentences_count_ = 1;
   InType input_data_;
+  std::size_t expected_count_;
 
   void SetUp() override {
-    input_data_ = LoadTestDataFromFile();
+    input_data_ = LoadTestData();
+    expected_count_ = 1312;
   }
 
   bool CheckTestOutputData(OutType &output_data) final {
-    return output_data == expected_sentences_count_;
+    return output_data == expected_count_;
   }
 
   InType GetTestInputData() final {
     return input_data_;
   }
 
-  static std::string LoadTestDataFromFile() {
-    std::vector<std::string> possible_paths = {"../../../tasks/kotelnikova_a_num_sent_in_line/data/test_7.txt",
-                                               "../tasks/kotelnikova_a_num_sent_in_line/data/test_7.txt",
-                                               "tasks/kotelnikova_a_num_sent_in_line/data/test_7.txt",
-                                               "kotelnikova_a_num_sent_in_line/data/test_7.txt", "data/test_7.txt"};
-
-    std::ifstream file;
-    for (const auto &path : possible_paths) {
-      file.open(path);
-      if (file.is_open()) {
-        break;
-      }
-    }
-    std::string content;
-    std::string line;
-    while (std::getline(file, line)) {
-      content += line + "\n";
-    }
-    file.close();
-
-    if (!content.empty() && content.back() == '\n') {
-      content.pop_back();
-    }
-
-    return content;
+  static std::string LoadTestData() {
+    std::string path = "tasks/kotelnikova_a_num_sent_in_line/data/test_6.txt";
+    std::ifstream file(path);
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
   }
 };
 

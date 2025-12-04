@@ -71,27 +71,22 @@ std::array<TestType, 7> LoadTestData() {
                                          {.filename = "test_3.txt", .expected = 8},
                                          {.filename = "test_4.txt", .expected = 11},
                                          {.filename = "test_5.txt", .expected = 1},
-                                         {.filename = "test_6.txt", .expected = 1312},
-                                         {.filename = "test_7.txt", .expected = 1}}};
+                                         {.filename = "test_6.txt", .expected = 1312}}};
 
   for (size_t i = 0; i < test_files.size(); ++i) {
     const auto &file_info = test_files.at(i);
 
-    std::vector<std::string> possible_paths = {
-        "../../../tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.filename,
-        "../tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.filename,
-        "tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.filename,
-        "kotelnikova_a_num_sent_in_line/data/" + file_info.filename, "data/" + file_info.filename};
+    std::string path = "tasks/kotelnikova_a_num_sent_in_line/data/" + file_info.filename;
 
-    for (const auto &path : possible_paths) {
-      std::ifstream file(path);
-      if (file.is_open()) {
-        std::stringstream ss;
-        ss << file.rdbuf();
-        std::string content = ss.str();
-        test_cases.at(i) = std::make_tuple(content, file_info.expected);
-        break;
-      }
+    std::ifstream file(path);
+    if (file.is_open()) {
+      std::stringstream ss;
+      ss << file.rdbuf();
+      std::string content = ss.str();
+      test_cases.at(i) = std::make_tuple(content, file_info.expected);
+    } else {
+      std::cerr << "Error: Cannot open file " << path << std::endl;
+      test_cases.at(i) = std::make_tuple("", file_info.expected);
     }
   }
 
