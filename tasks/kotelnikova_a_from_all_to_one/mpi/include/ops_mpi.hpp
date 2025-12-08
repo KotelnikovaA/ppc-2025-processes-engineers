@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mpi.h>
+
 #include "kotelnikova_a_from_all_to_one/common/include/common.hpp"
 #include "task/include/task.hpp"
 
@@ -17,6 +19,12 @@ class KotelnikovaAFromAllToOneMPI : public BaseTask {
   bool PreProcessingImpl() override;
   bool RunImpl() override;
   bool PostProcessingImpl() override;
+
+  static void TreeReduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm,
+                         int root);
+  static void CustomReduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm,
+                           int root);
+  static void PerformOperation(void *inbuf, void *inoutbuf, int count, MPI_Datatype datatype);
 };
 
 }  // namespace kotelnikova_a_from_all_to_one
