@@ -159,7 +159,7 @@ void KotelnikovaAFromAllToOneMPI::TreeReduce(void *sendbuf, void *recvbuf, int c
   std::memcpy(local_buf.data(), sendbuf, total_bytes);
 
   int mask = 1;
-  
+
   while (mask < size) {
     int partner = rank ^ mask;
 
