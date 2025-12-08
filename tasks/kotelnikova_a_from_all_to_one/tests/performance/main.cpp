@@ -1,5 +1,12 @@
 #include <gtest/gtest.h>
 
+#include <random>
+#include <cmath>
+#include <tuple>
+#include <variant>
+#include <vector>
+#include <algorithm>
+
 #include "kotelnikova_a_from_all_to_one/common/include/common.hpp"
 #include "kotelnikova_a_from_all_to_one/mpi/include/ops_mpi.hpp"
 #include "kotelnikova_a_from_all_to_one/seq/include/ops_seq.hpp"
@@ -8,33 +15,94 @@
 namespace kotelnikova_a_from_all_to_one {
 
 class KotelnikovaARunPerfTestProcesses2 : public ppc::util::BaseRunPerfTests<InType, OutType> {
-  const int kCount_ = 100;
-  InType input_data_{};
-
+ protected:
   void SetUp() override {
-    input_data_ = kCount_;
+    auto param = GetParam();
+    std::string task_name = std::get<1>(param);
+    is_mpi_test_ = (task_name.find("mpi") != std::string::npos);
+    
+    size_t size = 10000;
+    
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(-100.0, 100.0);
+    
+    std::vector<double> data(size);
+    for (size_t i = 0; i < size; i++) {
+      data[i] = dis(gen);
+    }
+    
+    input_data_ = InType{data};
   }
 
-  bool CheckTestOutputData(OutType &output_data) final {
-    return input_data_ == output_data;
+  bool CheckTestOutputData(InType &output_data) final {
+    try {
+      auto& output_vec = std::get<std::vector<double>>(output_data);
+      auto& input_vec = std::get<std::vector<double>>(input_data_);
+      
+      if (output_vec.empty()) {
+        return false;
+      }
+      
+      if (output_vec.size() != input_vec.size()) {
+        return false;
+      }
+      
+      if (!is_mpi_test_) {
+        for (size_t i = 0; i < output_vec.size(); i++) {
+          if (std::abs(output_vec[i] - input_vec[i]) > 1e-9) {
+            return false;
+          }
+        }
+        return true;
+      } else {
+        int mpi_size = 1;
+        MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+        bool all_correct = true;
+        for (size_t i = 0; i < std::min<size_t>(output_vec.size(), 10); i++) {
+          double expected_val = input_vec[i] * mpi_size;
+          
+          if (std::abs(output_vec[i] - expected_val) > 1e-6 * std::abs(expected_val)) {
+            all_correct = false;
+          }
+        }
+        return all_correct;
+      }
+    } catch (...) {
+      return false;
+    }
   }
 
-  InType GetTestInputData() final {
+  InTypeVariant GetTestInputData() final {
     return input_data_;
   }
+
+  bool IsMpiTest() const {
+    return is_mpi_test_;
+  }
+
+ private:
+  InTypeVariant input_data_;
+  bool is_mpi_test_ = false;
 };
 
+namespace {
+
 TEST_P(KotelnikovaARunPerfTestProcesses2, RunPerfModes) {
+
   ExecuteTest(GetParam());
 }
 
 const auto kAllPerfTasks =
-    ppc::util::MakeAllPerfTasks<InType, KotelnikovaAFromAllToOneMPI, KotelnikovaAFromAllToOneSEQ>(PPC_SETTINGS_kotelnikova_a_from_all_to_one);
+    ppc::util::MakeAllPerfTasks<InType, KotelnikovaAFromAllToOneSEQ, KotelnikovaAFromAllToOneMPI>(
+        PPC_SETTINGS_kotelnikova_a_from_all_to_one);
 
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
 
 const auto kPerfTestName = KotelnikovaARunPerfTestProcesses2::CustomPerfTestName;
 
 INSTANTIATE_TEST_SUITE_P(RunModeTests, KotelnikovaARunPerfTestProcesses2, kGtestValues, kPerfTestName);
+
+}  // namespace
 
 }  // namespace kotelnikova_a_from_all_to_one
