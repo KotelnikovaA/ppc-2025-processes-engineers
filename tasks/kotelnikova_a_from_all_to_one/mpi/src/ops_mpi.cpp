@@ -170,11 +170,10 @@ void KotelnikovaAFromAllToOneMPI::TreeReduce(void *sendbuf, void *recvbuf, int c
         PerformOperation(recv_buf.data(), local_buf.data(), count, datatype);
       } else {
         MPI_Send(local_buf.data(), count, datatype, partner, 0, comm);
-        return;
       }
     }
-    mask <<= 1;
     MPI_Barrier(comm);
+    mask <<= 1;
   }
 
   if (rank == 0) {
