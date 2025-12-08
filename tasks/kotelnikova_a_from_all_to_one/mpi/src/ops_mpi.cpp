@@ -158,23 +158,23 @@ void KotelnikovaAFromAllToOneMPI::TreeReduce(void *sendbuf, void *recvbuf, int c
   std::vector<unsigned char> local_buf(total_bytes);
   std::memcpy(local_buf.data(), sendbuf, total_bytes);
 
-  int mask = 1;
-
-  while (mask < size) {
+  for (int mask = 1; mask < size; mask <<= 1) {
     int partner = rank ^ mask;
 
-    if (partner < size) {
-      if ((rank & mask) == 0) {
-        std::vector<unsigned char> recv_buf(total_bytes);
-        MPI_Recv(recv_buf.data(), count, datatype, partner, 0, comm, MPI_STATUS_IGNORE);
-        PerformOperation(recv_buf.data(), local_buf.data(), count, datatype);
-      } else {
-        MPI_Send(local_buf.data(), count, datatype, partner, 0, comm);
-      }
+    if (partner >= size) {
+      continue;
     }
-    MPI_Barrier(comm);
-    mask <<= 1;
+
+    if ((rank & mask) == 0) {
+      std::vector<unsigned char> recv_buf(total_bytes);
+      MPI_Recv(recv_buf.data(), count, datatype, partner, 0, comm, MPI_STATUS_IGNORE);
+      PerformOperation(recv_buf.data(), local_buf.data(), count, datatype);
+    } else {
+      MPI_Send(local_buf.data(), count, datatype, partner, 0, comm);
+      break;
+    }
   }
+  MPI_Barrier(comm);
 
   if (rank == 0) {
     std::memcpy(recvbuf, local_buf.data(), total_bytes);

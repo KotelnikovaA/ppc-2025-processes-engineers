@@ -23,7 +23,7 @@ class KotelnikovaARunPerfTestProcesses2 : public ppc::util::BaseRunPerfTests<InT
     std::string task_name = std::get<1>(param);
     is_mpi_test_ = (task_name.find("mpi") != std::string::npos);
 
-    size_t size = 1000000;
+    size_t size = 10000000;
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -57,19 +57,20 @@ class KotelnikovaARunPerfTestProcesses2 : public ppc::util::BaseRunPerfTests<InT
           }
         }
         return true;
-      } else {
-        int mpi_size = 1;
-        MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
-        bool all_correct = true;
-        for (size_t i = 0; i < std::min<size_t>(output_vec.size(), 10); i++) {
-          double expected_val = input_vec[i] * mpi_size;
-
-          if (std::abs(output_vec[i] - expected_val) > 1e-6 * std::abs(expected_val)) {
-            all_correct = false;
-          }
-        }
-        return all_correct;
       }
+
+      int mpi_size = 1;
+      MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+      bool all_correct = true;
+      for (size_t i = 0; i < std::min<size_t>(output_vec.size(), 10); i++) {
+        double expected_val = input_vec[i] * mpi_size;
+
+        if (std::abs(output_vec[i] - expected_val) > 1e-6 * std::abs(expected_val)) {
+          all_correct = false;
+        }
+      }
+      return all_correct;
+
     } catch (...) {
       return false;
     }
@@ -79,7 +80,7 @@ class KotelnikovaARunPerfTestProcesses2 : public ppc::util::BaseRunPerfTests<InT
     return input_data_;
   }
 
-  bool IsMpiTest() const {
+  [[nodiscard]] bool IsMpiTest() const {
     return is_mpi_test_;
   }
 

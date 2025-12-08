@@ -4,8 +4,6 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
-#include <exception>
-#include <limits>
 #include <string>
 #include <tuple>
 #include <variant>
@@ -15,7 +13,6 @@
 #include "kotelnikova_a_from_all_to_one/mpi/include/ops_mpi.hpp"
 #include "kotelnikova_a_from_all_to_one/seq/include/ops_seq.hpp"
 #include "util/include/func_test_util.hpp"
-#include "util/include/util.hpp"
 
 namespace kotelnikova_a_from_all_to_one {
 
