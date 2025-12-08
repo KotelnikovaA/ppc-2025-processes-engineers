@@ -159,8 +159,7 @@ void KotelnikovaAFromAllToOneMPI::TreeReduce(void *sendbuf, void *recvbuf, int c
   std::memcpy(local_buf.data(), sendbuf, total_bytes);
 
   int mask = 1;
-  bool is_active = true;
-
+  
   while (mask < size) {
     int partner = rank ^ mask;
 
@@ -171,7 +170,7 @@ void KotelnikovaAFromAllToOneMPI::TreeReduce(void *sendbuf, void *recvbuf, int c
         PerformOperation(recv_buf.data(), local_buf.data(), count, datatype);
       } else {
         MPI_Send(local_buf.data(), count, datatype, partner, 0, comm);
-        is_active = false;
+        return;
       }
     }
     mask <<= 1;
