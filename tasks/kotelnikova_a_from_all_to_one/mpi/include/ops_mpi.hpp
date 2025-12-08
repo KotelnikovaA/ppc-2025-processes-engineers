@@ -3,8 +3,6 @@
 #include <mpi.h>
 
 #include <string>
-#include <variant>
-#include <vector>
 
 #include "kotelnikova_a_from_all_to_one/common/include/common.hpp"
 #include "task/include/task.hpp"
@@ -30,8 +28,6 @@ class KotelnikovaAFromAllToOneMPI : public BaseTask {
 
   static void TreeReduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm,
                          int root);
-  template <typename T>
-  static std::vector<T> GetVectorFromVariant(const InTypeVariant &variant);
 };
 
 }  // namespace kotelnikova_a_from_all_to_one

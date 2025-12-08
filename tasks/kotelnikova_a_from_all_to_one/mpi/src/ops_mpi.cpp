@@ -112,12 +112,6 @@ bool KotelnikovaAFromAllToOneMPI::RunImpl() {
   }
 }
 
-int GetTypeSize(MPI_Datatype datatype) {
-  int size;
-  MPI_Type_size(datatype, &size);
-  return size;
-}
-
 void KotelnikovaAFromAllToOneMPI::CustomReduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
                                                MPI_Op op, MPI_Comm comm, int root) {
   int size;
@@ -129,7 +123,8 @@ void KotelnikovaAFromAllToOneMPI::CustomReduce(void *sendbuf, void *recvbuf, int
   if (rank == root) {
     TreeReduce(sendbuf, recvbuf, count, datatype, op, comm, root);
   } else {
-    int type_size = GetTypeSize(datatype);
+    int type_size;
+    MPI_Type_size(datatype, &type_size);
     size_t total_bytes = static_cast<size_t>(count) * static_cast<size_t>(type_size);
     std::vector<unsigned char> temp_buf(total_bytes);
     TreeReduce(sendbuf, temp_buf.data(), count, datatype, op, comm, root);
@@ -156,7 +151,8 @@ void KotelnikovaAFromAllToOneMPI::TreeReduce(void *sendbuf, void *recvbuf, int c
     throw std::runtime_error("Wrong operation");
   }
 
-  int type_size = GetTypeSize(datatype);
+  int type_size;
+  MPI_Type_size(datatype, &type_size);
   size_t total_bytes = static_cast<size_t>(count) * static_cast<size_t>(type_size);
 
   std::vector<unsigned char> local_buf(total_bytes);
