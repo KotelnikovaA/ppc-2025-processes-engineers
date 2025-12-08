@@ -23,7 +23,7 @@ class KotelnikovaARunPerfTestProcesses2 : public ppc::util::BaseRunPerfTests<InT
     std::string task_name = std::get<1>(param);
     is_mpi_test_ = (task_name.find("mpi") != std::string::npos);
 
-    size_t size = 10000;
+    size_t size = 1000000;
 
     std::random_device rd;
     std::mt19937 gen(rd());

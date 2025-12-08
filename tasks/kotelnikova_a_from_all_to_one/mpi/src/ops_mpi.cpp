@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "kotelnikova_a_from_all_to_one/common/include/common.hpp"
-#include "util/include/util.hpp"
 
 namespace kotelnikova_a_from_all_to_one {
 
@@ -124,7 +123,7 @@ void KotelnikovaAFromAllToOneMPI::CustomReduce(void *sendbuf, void *recvbuf, int
   if (rank == root) {
     TreeReduce(sendbuf, recvbuf, count, datatype, op, comm, root);
   } else {
-    int type_size;
+    int type_size = 0;
     MPI_Type_size(datatype, &type_size);
     size_t total_bytes = static_cast<size_t>(count) * static_cast<size_t>(type_size);
     std::vector<unsigned char> temp_buf(total_bytes);
@@ -152,7 +151,7 @@ void KotelnikovaAFromAllToOneMPI::TreeReduce(void *sendbuf, void *recvbuf, int c
     throw std::runtime_error("Wrong operation");
   }
 
-  int type_size;
+  int type_size = 0;
   MPI_Type_size(datatype, &type_size);
   size_t total_bytes = static_cast<size_t>(count) * static_cast<size_t>(type_size);
 
@@ -160,6 +159,8 @@ void KotelnikovaAFromAllToOneMPI::TreeReduce(void *sendbuf, void *recvbuf, int c
   std::memcpy(local_buf.data(), sendbuf, total_bytes);
 
   int mask = 1;
+  bool is_active = true;
+
   while (mask < size) {
     int partner = rank ^ mask;
 
@@ -170,10 +171,11 @@ void KotelnikovaAFromAllToOneMPI::TreeReduce(void *sendbuf, void *recvbuf, int c
         PerformOperation(recv_buf.data(), local_buf.data(), count, datatype);
       } else {
         MPI_Send(local_buf.data(), count, datatype, partner, 0, comm);
-        return;
+        is_active = false;
       }
     }
     mask <<= 1;
+    MPI_Barrier(comm);
   }
 
   if (rank == 0) {

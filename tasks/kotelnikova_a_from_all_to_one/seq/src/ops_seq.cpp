@@ -1,7 +1,6 @@
 #include "kotelnikova_a_from_all_to_one/seq/include/ops_seq.hpp"
 
 #include "kotelnikova_a_from_all_to_one/common/include/common.hpp"
-#include "util/include/util.hpp"
 
 namespace kotelnikova_a_from_all_to_one {
 
