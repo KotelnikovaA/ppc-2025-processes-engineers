@@ -187,7 +187,7 @@ class KotelnikovaAFuncTestsProcesses2 : public ppc::util::BaseRunFuncTests<InTyp
     return true;
   }
 
-  bool CheckNonRootIntOutput(const std::vector<int> &output_vec) {
+  static bool CheckNonRootIntOutput(const std::vector<int> &output_vec) {
     for (std::size_t i = 0; i < output_vec.size(); ++i) {
       if (output_vec[i] != 0) {
         return false;
@@ -216,7 +216,7 @@ class KotelnikovaAFuncTestsProcesses2 : public ppc::util::BaseRunFuncTests<InTyp
     return true;
   }
 
-  bool CheckNonRootFloatOutput(const std::vector<float> &output_vec) {
+  static bool CheckNonRootFloatOutput(const std::vector<float> &output_vec) {
     const float epsilon = 1e-5F;
     for (std::size_t i = 0; i < output_vec.size(); ++i) {
       if (std::fabs(output_vec[i]) > epsilon) {
@@ -241,7 +241,7 @@ class KotelnikovaAFuncTestsProcesses2 : public ppc::util::BaseRunFuncTests<InTyp
     return true;
   }
 
-  bool CheckNonRootDoubleOutput(const std::vector<double> &output_vec) {
+  static bool CheckNonRootDoubleOutput(const std::vector<double> &output_vec) {
     const double epsilon = 1e-10;
     for (std::size_t i = 0; i < output_vec.size(); ++i) {
       if (std::fabs(output_vec[i]) > epsilon) {

@@ -1,10 +1,5 @@
 #include "kotelnikova_a_from_all_to_one/seq/include/ops_seq.hpp"
 
-#include <iostream>
-#include <stdexcept>
-#include <variant>
-#include <vector>
-
 #include "kotelnikova_a_from_all_to_one/common/include/common.hpp"
 #include "util/include/util.hpp"
 
@@ -28,7 +23,7 @@ bool KotelnikovaAFromAllToOneSEQ::RunImpl() {
   try {
     GetOutput() = GetInput();
     return true;
-  } catch (const std::exception &) {
+  } catch (...) {
     return false;
   }
 }

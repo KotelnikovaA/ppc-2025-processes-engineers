@@ -1,9 +1,5 @@
 #pragma once
 
-#include <string>
-#include <variant>
-#include <vector>
-
 #include "kotelnikova_a_from_all_to_one/common/include/common.hpp"
 #include "task/include/task.hpp"
 

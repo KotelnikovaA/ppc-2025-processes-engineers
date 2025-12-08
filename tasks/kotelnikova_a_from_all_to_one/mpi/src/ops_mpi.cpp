@@ -2,9 +2,7 @@
 
 #include <mpi.h>
 
-#include <algorithm>
 #include <cstring>
-#include <iostream>
 #include <stdexcept>
 #include <variant>
 #include <vector>
@@ -22,7 +20,7 @@ KotelnikovaAFromAllToOneMPI::KotelnikovaAFromAllToOneMPI(const InType &in) {
   int mpi_initialized = 0;
   MPI_Initialized(&mpi_initialized);
 
-  if (mpi_initialized) {
+  if (mpi_initialized != 0) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   }
 
@@ -51,7 +49,7 @@ bool KotelnikovaAFromAllToOneMPI::PreProcessingImpl() {
 bool KotelnikovaAFromAllToOneMPI::RunImpl() {
   try {
     auto input = GetInput();
-    int rank;
+    int rank = 0;
     int root = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -71,8 +69,9 @@ bool KotelnikovaAFromAllToOneMPI::RunImpl() {
                      MPI_COMM_WORLD, root);
       }
       return true;
+    }
 
-    } else if (std::holds_alternative<std::vector<float>>(input)) {
+    if (std::holds_alternative<std::vector<float>>(input)) {
       auto original_data = std::get<std::vector<float>>(input);
 
       if (rank == root) {
@@ -88,8 +87,9 @@ bool KotelnikovaAFromAllToOneMPI::RunImpl() {
                      MPI_SUM, MPI_COMM_WORLD, root);
       }
       return true;
+    }
 
-    } else if (std::holds_alternative<std::vector<double>>(input)) {
+    if (std::holds_alternative<std::vector<double>>(input)) {
       auto original_data = std::get<std::vector<double>>(input);
 
       if (rank == root) {
@@ -106,6 +106,7 @@ bool KotelnikovaAFromAllToOneMPI::RunImpl() {
       }
       return true;
     }
+
     return false;
   } catch (...) {
     return false;
@@ -114,10 +115,10 @@ bool KotelnikovaAFromAllToOneMPI::RunImpl() {
 
 void KotelnikovaAFromAllToOneMPI::CustomReduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
                                                MPI_Op op, MPI_Comm comm, int root) {
-  int size;
+  int size = 0;
   MPI_Comm_size(comm, &size);
 
-  int rank;
+  int rank = 0;
   MPI_Comm_rank(comm, &rank);
 
   if (rank == root) {
@@ -133,10 +134,10 @@ void KotelnikovaAFromAllToOneMPI::CustomReduce(void *sendbuf, void *recvbuf, int
 
 void KotelnikovaAFromAllToOneMPI::TreeReduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op,
                                              MPI_Comm comm, int root) {
-  int size;
+  int size = 0;
   MPI_Comm_size(comm, &size);
 
-  int rank;
+  int rank = 0;
   MPI_Comm_rank(comm, &rank);
 
   if (count == 0) {

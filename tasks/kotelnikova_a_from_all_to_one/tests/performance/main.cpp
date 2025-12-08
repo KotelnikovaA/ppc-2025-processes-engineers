@@ -1,10 +1,12 @@
 #include <gtest/gtest.h>
+#include <mpi.h>
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <random>
+#include <string>
 #include <tuple>
-#include <variant>
 #include <vector>
 
 #include "kotelnikova_a_from_all_to_one/common/include/common.hpp"
@@ -25,7 +27,7 @@ class KotelnikovaARunPerfTestProcesses2 : public ppc::util::BaseRunPerfTests<InT
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(-100.0, 100.0);
+    std::uniform_real_distribution<> dis(-1000.0, 1000.0);
 
     std::vector<double> data(size);
     for (size_t i = 0; i < size; i++) {
