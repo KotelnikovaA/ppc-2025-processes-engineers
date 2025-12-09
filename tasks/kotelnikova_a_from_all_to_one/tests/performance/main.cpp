@@ -22,7 +22,7 @@ class KotelnikovaARunPerfTestProcesses2 : public ppc::util::BaseRunPerfTests<InT
     std::string task_name = std::get<1>(param);
     is_mpi_test_ = (task_name.find("mpi") != std::string::npos);
 
-    size_t size = 1000000;
+    size_t size = 9000000;
     std::vector<double> data(size);
 
     for (size_t i = 0; i < size; i++) {
