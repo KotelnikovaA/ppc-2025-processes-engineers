@@ -23,17 +23,17 @@ KotelnikovaAFromAllToOneMPI::KotelnikovaAFromAllToOneMPI(const InType &in) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   }
 
-  if (std::holds_alternative<std::vector<int>>(in)) {
-    auto vec = std::get<std::vector<int>>(in);
-    GetOutput() = InTypeVariant{std::vector<int>(vec.size(), 0)};
-  } else if (std::holds_alternative<std::vector<float>>(in)) {
-    auto vec = std::get<std::vector<float>>(in);
-    GetOutput() = InTypeVariant{std::vector<float>(vec.size(), 0.0F)};
-  } else if (std::holds_alternative<std::vector<double>>(in)) {
-    auto vec = std::get<std::vector<double>>(in);
-    GetOutput() = InTypeVariant{std::vector<double>(vec.size(), 0.0)};
-  } else {
-    throw std::runtime_error("Unsupported data type");
+  if (rank == 0) {
+    if (std::holds_alternative<std::vector<int>>(in)) {
+      auto vec = std::get<std::vector<int>>(in);
+      GetOutput() = InTypeVariant{std::vector<int>(vec.size(), 0)};
+    } else if (std::holds_alternative<std::vector<float>>(in)) {
+      auto vec = std::get<std::vector<float>>(in);
+      GetOutput() = InTypeVariant{std::vector<float>(vec.size(), 0.0F)};
+    } else if (std::holds_alternative<std::vector<double>>(in)) {
+      auto vec = std::get<std::vector<double>>(in);
+      GetOutput() = InTypeVariant{std::vector<double>(vec.size(), 0.0)};
+    }
   }
 }
 
@@ -143,17 +143,12 @@ void KotelnikovaAFromAllToOneMPI::TreeReduce(void *sendbuf, void *recvbuf, int c
     return;
   }
 
-  void *working_buf = sendbuf;
+  int type_size = 0;
+  MPI_Type_size(datatype, &type_size);
+  size_t total_bytes = static_cast<size_t>(count) * static_cast<size_t>(type_size);
 
-  if (rank == root) {
-    if (sendbuf != recvbuf) {
-      int type_size = 0;
-      MPI_Type_size(datatype, &type_size);
-      size_t total_bytes = static_cast<size_t>(count) * static_cast<size_t>(type_size);
-      std::memcpy(recvbuf, sendbuf, total_bytes);
-      working_buf = recvbuf;
-    }
-  }
+  std::vector<unsigned char> local_buf(total_bytes);
+  std::memcpy(local_buf.data(), sendbuf, total_bytes);
 
   int depth = 0;
   while ((1 << depth) < size) {
@@ -170,22 +165,18 @@ void KotelnikovaAFromAllToOneMPI::TreeReduce(void *sendbuf, void *recvbuf, int c
 
     if ((rank & mask) == 0) {
       if (partner < size) {
-        int type_size = 0;
-        MPI_Type_size(datatype, &type_size);
-        size_t total_bytes = static_cast<size_t>(count) * static_cast<size_t>(type_size);
         std::vector<unsigned char> recv_buf(total_bytes);
-
         MPI_Recv(recv_buf.data(), count, datatype, partner, 0, comm, MPI_STATUS_IGNORE);
-        PerformOperation(recv_buf.data(), working_buf, count, datatype);
+        PerformOperation(recv_buf.data(), local_buf.data(), count, datatype);
       }
     } else {
-      MPI_Send(working_buf, count, datatype, partner, 0, comm);
+      MPI_Send(local_buf.data(), count, datatype, partner, 0, comm);
       break;
     }
   }
 
-  if (rank != root) {
-    return;
+  if (rank == root && recvbuf != nullptr) {
+    std::memcpy(recvbuf, local_buf.data(), total_bytes);
   }
 }
 

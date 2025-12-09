@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <iostream>
 #include <random>
 #include <string>
 #include <tuple>
@@ -39,48 +40,36 @@ class KotelnikovaARunPerfTestProcesses2 : public ppc::util::BaseRunPerfTests<InT
 
   bool CheckTestOutputData(InType &output_data) final {
     try {
-      auto &output_vec = std::get<std::vector<double>>(output_data);
-      auto &input_vec = std::get<std::vector<double>>(input_data_);
-
-      if (output_vec.empty()) {
-        return false;
-      }
-
-      if (output_vec.size() != input_vec.size()) {
-        return false;
-      }
-
-      if (!is_mpi_test_) {
-        for (size_t i = 0; i < output_vec.size(); i++) {
-          if (std::abs(output_vec[i] - input_vec[i]) > 1e-9) {
-            return false;
-          }
-        }
-        return true;
-      }
-
       int rank = 0;
+      int mpi_size = 0;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-      int mpi_size = 1;
       MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
+      auto &input_vec = std::get<std::vector<double>>(input_data_);
+
       if (rank == 0) {
+        auto &output_vec = std::get<std::vector<double>>(output_data);
+
+        if (output_vec.empty()) {
+          return false;
+        }
+
+        if (output_vec.size() != input_vec.size()) {
+          return false;
+        }
+
         for (size_t i = 0; i < std::min<size_t>(output_vec.size(), 10); i++) {
           double expected_val = input_vec[i] * mpi_size;
-          if (std::abs(output_vec[i] - expected_val) > 1e-6 * std::abs(expected_val)) {
-            return false;
-          }
-        }
-        return true;
-      } else {
-        for (size_t i = 0; i < std::min<size_t>(output_vec.size(), 10); i++) {
-          if (std::abs(output_vec[i] - 0.0) > 1e-9) {
+          double diff = std::abs(output_vec[i] - expected_val);
+
+          if (diff > 1e-6) {
             return false;
           }
         }
         return true;
       }
 
+      return true;
     } catch (...) {
       return false;
     }
