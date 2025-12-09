@@ -19,7 +19,12 @@ bool KotelnikovaAFromAllToOneSEQ::PreProcessingImpl() {
 }
 
 bool KotelnikovaAFromAllToOneSEQ::RunImpl() {
-  return true;
+  try {
+    GetOutput() = GetInput();
+    return true;
+  } catch (...) {
+    return false;
+  }
 }
 
 bool KotelnikovaAFromAllToOneSEQ::PostProcessingImpl() {

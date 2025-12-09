@@ -23,17 +23,19 @@ KotelnikovaAFromAllToOneMPI::KotelnikovaAFromAllToOneMPI(const InType &in) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   }
 
-  if (std::holds_alternative<std::vector<int>>(in)) {
-    auto vec = std::get<std::vector<int>>(in);
-    GetOutput() = InTypeVariant{std::vector<int>(vec.size(), 0)};
-  } else if (std::holds_alternative<std::vector<float>>(in)) {
-    auto vec = std::get<std::vector<float>>(in);
-    GetOutput() = InTypeVariant{std::vector<float>(vec.size(), 0.0F)};
-  } else if (std::holds_alternative<std::vector<double>>(in)) {
-    auto vec = std::get<std::vector<double>>(in);
-    GetOutput() = InTypeVariant{std::vector<double>(vec.size(), 0.0)};
-  } else {
-    throw std::runtime_error("Unsupported data type");
+  if (rank == 0) {
+    if (std::holds_alternative<std::vector<int>>(in)) {
+      auto vec = std::get<std::vector<int>>(in);
+      GetOutput() = InTypeVariant{std::vector<int>(vec.size(), 0)};
+    } else if (std::holds_alternative<std::vector<float>>(in)) {
+      auto vec = std::get<std::vector<float>>(in);
+      GetOutput() = InTypeVariant{std::vector<float>(vec.size(), 0.0F)};
+    } else if (std::holds_alternative<std::vector<double>>(in)) {
+      auto vec = std::get<std::vector<double>>(in);
+      GetOutput() = InTypeVariant{std::vector<double>(vec.size(), 0.0)};
+    } else {
+      throw std::runtime_error("Unsupported data type");
+    }
   }
 }
 
