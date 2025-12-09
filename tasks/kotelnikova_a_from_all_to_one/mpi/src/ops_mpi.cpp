@@ -2,6 +2,7 @@
 
 #include <mpi.h>
 
+#include <algorithm>
 #include <cstring>
 #include <stdexcept>
 #include <variant>
@@ -10,6 +11,40 @@
 #include "kotelnikova_a_from_all_to_one/common/include/common.hpp"
 
 namespace kotelnikova_a_from_all_to_one {
+
+namespace {
+
+template <typename T, MPI_Datatype MpiType>
+bool ProcessReduce(const std::vector<T> &original_data, int rank, int root, int world_size, OutType &output) {
+  if (world_size == 1) {
+    if (rank == root) {
+      auto &result_data = std::get<std::vector<T>>(output);
+      std::ranges::copy(original_data, result_data.begin());
+    }
+    return true;
+  }
+
+  if (rank == root) {
+    auto &result_data = std::get<std::vector<T>>(output);
+
+    if (original_data.empty()) {
+      return true;
+    }
+
+    std::ranges::copy(original_data, result_data.begin());
+
+    MPI_Reduce(MPI_IN_PLACE, result_data.data(), static_cast<int>(original_data.size()), MpiType, MPI_SUM, root,
+               MPI_COMM_WORLD);
+  } else {
+    if (!original_data.empty()) {
+      MPI_Reduce(original_data.data(), nullptr, static_cast<int>(original_data.size()), MpiType, MPI_SUM, root,
+                 MPI_COMM_WORLD);
+    }
+  }
+  return true;
+}
+
+}  // namespace
 
 KotelnikovaAFromAllToOneMPI::KotelnikovaAFromAllToOneMPI(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
@@ -56,96 +91,15 @@ bool KotelnikovaAFromAllToOneMPI::RunImpl() {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-    if (world_size == 1) {
-      if (rank == root) {
-        auto &output = GetOutput();
-        if (std::holds_alternative<std::vector<int>>(input)) {
-          auto &input_vec = std::get<std::vector<int>>(input);
-          auto &output_vec = std::get<std::vector<int>>(output);
-          std::copy(input_vec.begin(), input_vec.end(), output_vec.begin());
-        } else if (std::holds_alternative<std::vector<float>>(input)) {
-          auto &input_vec = std::get<std::vector<float>>(input);
-          auto &output_vec = std::get<std::vector<float>>(output);
-          std::copy(input_vec.begin(), input_vec.end(), output_vec.begin());
-        } else if (std::holds_alternative<std::vector<double>>(input)) {
-          auto &input_vec = std::get<std::vector<double>>(input);
-          auto &output_vec = std::get<std::vector<double>>(output);
-          std::copy(input_vec.begin(), input_vec.end(), output_vec.begin());
-        }
-      }
-      return true;
-    }
-
     if (std::holds_alternative<std::vector<int>>(input)) {
-      auto original_data = std::get<std::vector<int>>(input);
-
-      if (rank == root) {
-        auto &output_variant = GetOutput();
-        auto &result_data = std::get<std::vector<int>>(output_variant);
-
-        if (original_data.empty()) {
-          return true;
-        }
-
-        std::copy(original_data.begin(), original_data.end(), result_data.begin());
-
-        MPI_Reduce(MPI_IN_PLACE, result_data.data(), static_cast<int>(original_data.size()), MPI_INT, MPI_SUM, root,
-                   MPI_COMM_WORLD);
-      } else {
-        if (!original_data.empty()) {
-          MPI_Reduce(original_data.data(), nullptr, static_cast<int>(original_data.size()), MPI_INT, MPI_SUM, root,
-                     MPI_COMM_WORLD);
-        }
-      }
-      return true;
+      return ProcessReduce<int, MPI_INT>(std::get<std::vector<int>>(input), rank, root, world_size, GetOutput());
     }
-
     if (std::holds_alternative<std::vector<float>>(input)) {
-      auto original_data = std::get<std::vector<float>>(input);
-
-      if (rank == root) {
-        auto &output_variant = GetOutput();
-        auto &result_data = std::get<std::vector<float>>(output_variant);
-
-        if (original_data.empty()) {
-          return true;
-        }
-
-        std::copy(original_data.begin(), original_data.end(), result_data.begin());
-
-        MPI_Reduce(MPI_IN_PLACE, result_data.data(), static_cast<int>(original_data.size()), MPI_FLOAT, MPI_SUM, root,
-                   MPI_COMM_WORLD);
-      } else {
-        if (!original_data.empty()) {
-          MPI_Reduce(original_data.data(), nullptr, static_cast<int>(original_data.size()), MPI_FLOAT, MPI_SUM, root,
-                     MPI_COMM_WORLD);
-        }
-      }
-      return true;
+      return ProcessReduce<float, MPI_FLOAT>(std::get<std::vector<float>>(input), rank, root, world_size, GetOutput());
     }
-
     if (std::holds_alternative<std::vector<double>>(input)) {
-      auto original_data = std::get<std::vector<double>>(input);
-
-      if (rank == root) {
-        auto &output_variant = GetOutput();
-        auto &result_data = std::get<std::vector<double>>(output_variant);
-
-        if (original_data.empty()) {
-          return true;
-        }
-
-        std::copy(original_data.begin(), original_data.end(), result_data.begin());
-
-        MPI_Reduce(MPI_IN_PLACE, result_data.data(), static_cast<int>(original_data.size()), MPI_DOUBLE, MPI_SUM, root,
-                   MPI_COMM_WORLD);
-      } else {
-        if (!original_data.empty()) {
-          MPI_Reduce(original_data.data(), nullptr, static_cast<int>(original_data.size()), MPI_DOUBLE, MPI_SUM, root,
-                     MPI_COMM_WORLD);
-        }
-      }
-      return true;
+      return ProcessReduce<double, MPI_DOUBLE>(std::get<std::vector<double>>(input), rank, root, world_size,
+                                               GetOutput());
     }
 
     return false;

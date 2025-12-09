@@ -74,9 +74,8 @@ class KotelnikovaARunPerfTestProcesses2 : public ppc::util::BaseRunPerfTests<InT
         }
 
         return true;
-      } else {
-        return true;
       }
+      return true;
     } catch (...) {
       return false;
     }

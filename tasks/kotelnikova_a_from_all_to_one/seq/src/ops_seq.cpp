@@ -1,8 +1,32 @@
 #include "kotelnikova_a_from_all_to_one/seq/include/ops_seq.hpp"
 
+#include <cstring>
+#include <stdexcept>
+#include <variant>
+#include <vector>
+
 #include "kotelnikova_a_from_all_to_one/common/include/common.hpp"
 
 namespace kotelnikova_a_from_all_to_one {
+
+namespace {
+
+template <typename T>
+bool CopyVector(const InType &input, OutType &output) {
+  auto &input_vec = std::get<std::vector<T>>(input);
+  auto &output_vec = std::get<std::vector<T>>(output);
+
+  if (output_vec.size() != input_vec.size()) {
+    output_vec.resize(input_vec.size());
+  }
+
+  if (!input_vec.empty()) {
+    std::memcpy(output_vec.data(), input_vec.data(), input_vec.size() * sizeof(T));
+  }
+  return true;
+}
+
+}  // namespace
 
 KotelnikovaAFromAllToOneSEQ::KotelnikovaAFromAllToOneSEQ(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
@@ -27,9 +51,11 @@ bool KotelnikovaAFromAllToOneSEQ::ValidationImpl() {
 
   if (std::holds_alternative<std::vector<int>>(input)) {
     return true;
-  } else if (std::holds_alternative<std::vector<float>>(input)) {
+  }
+  if (std::holds_alternative<std::vector<float>>(input)) {
     return true;
-  } else if (std::holds_alternative<std::vector<double>>(input)) {
+  }
+  if (std::holds_alternative<std::vector<double>>(input)) {
     return true;
   }
 
@@ -46,45 +72,13 @@ bool KotelnikovaAFromAllToOneSEQ::RunImpl() {
     auto &output = GetOutput();
 
     if (std::holds_alternative<std::vector<int>>(input)) {
-      auto &input_vec = std::get<std::vector<int>>(input);
-      auto &output_vec = std::get<std::vector<int>>(output);
-
-      if (output_vec.size() != input_vec.size()) {
-        output_vec.resize(input_vec.size());
-      }
-
-      if (!input_vec.empty()) {
-        std::memcpy(output_vec.data(), input_vec.data(), input_vec.size() * sizeof(int));
-      }
-      return true;
+      return CopyVector<int>(input, output);
     }
-
     if (std::holds_alternative<std::vector<float>>(input)) {
-      auto &input_vec = std::get<std::vector<float>>(input);
-      auto &output_vec = std::get<std::vector<float>>(output);
-
-      if (output_vec.size() != input_vec.size()) {
-        output_vec.resize(input_vec.size());
-      }
-
-      if (!input_vec.empty()) {
-        std::memcpy(output_vec.data(), input_vec.data(), input_vec.size() * sizeof(float));
-      }
-      return true;
+      return CopyVector<float>(input, output);
     }
-
     if (std::holds_alternative<std::vector<double>>(input)) {
-      auto &input_vec = std::get<std::vector<double>>(input);
-      auto &output_vec = std::get<std::vector<double>>(output);
-
-      if (output_vec.size() != input_vec.size()) {
-        output_vec.resize(input_vec.size());
-      }
-
-      if (!input_vec.empty()) {
-        std::memcpy(output_vec.data(), input_vec.data(), input_vec.size() * sizeof(double));
-      }
-      return true;
+      return CopyVector<double>(input, output);
     }
 
     return false;
