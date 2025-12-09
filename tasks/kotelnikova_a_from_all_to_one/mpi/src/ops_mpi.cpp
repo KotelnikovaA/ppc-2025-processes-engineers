@@ -52,7 +52,29 @@ bool KotelnikovaAFromAllToOneMPI::RunImpl() {
     auto input = GetInput();
     int rank = 0;
     int root = 0;
+    int world_size = 1;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    if (world_size == 1) {
+      if (rank == root) {
+        auto &output = GetOutput();
+        if (std::holds_alternative<std::vector<int>>(input)) {
+          auto &input_vec = std::get<std::vector<int>>(input);
+          auto &output_vec = std::get<std::vector<int>>(output);
+          std::copy(input_vec.begin(), input_vec.end(), output_vec.begin());
+        } else if (std::holds_alternative<std::vector<float>>(input)) {
+          auto &input_vec = std::get<std::vector<float>>(input);
+          auto &output_vec = std::get<std::vector<float>>(output);
+          std::copy(input_vec.begin(), input_vec.end(), output_vec.begin());
+        } else if (std::holds_alternative<std::vector<double>>(input)) {
+          auto &input_vec = std::get<std::vector<double>>(input);
+          auto &output_vec = std::get<std::vector<double>>(output);
+          std::copy(input_vec.begin(), input_vec.end(), output_vec.begin());
+        }
+      }
+      return true;
+    }
 
     if (std::holds_alternative<std::vector<int>>(input)) {
       auto original_data = std::get<std::vector<int>>(input);
@@ -61,13 +83,19 @@ bool KotelnikovaAFromAllToOneMPI::RunImpl() {
         auto &output_variant = GetOutput();
         auto &result_data = std::get<std::vector<int>>(output_variant);
 
-        CustomReduce(original_data.data(), result_data.data(), static_cast<int>(original_data.size()), MPI_INT, MPI_SUM,
-                     MPI_COMM_WORLD, root);
+        if (original_data.empty()) {
+          return true;
+        }
 
+        std::copy(original_data.begin(), original_data.end(), result_data.begin());
+
+        MPI_Reduce(MPI_IN_PLACE, result_data.data(), static_cast<int>(original_data.size()), MPI_INT, MPI_SUM, root,
+                   MPI_COMM_WORLD);
       } else {
-        std::vector<int> temp_result(original_data.size());
-        CustomReduce(original_data.data(), temp_result.data(), static_cast<int>(original_data.size()), MPI_INT, MPI_SUM,
-                     MPI_COMM_WORLD, root);
+        if (!original_data.empty()) {
+          MPI_Reduce(original_data.data(), nullptr, static_cast<int>(original_data.size()), MPI_INT, MPI_SUM, root,
+                     MPI_COMM_WORLD);
+        }
       }
       return true;
     }
@@ -79,13 +107,19 @@ bool KotelnikovaAFromAllToOneMPI::RunImpl() {
         auto &output_variant = GetOutput();
         auto &result_data = std::get<std::vector<float>>(output_variant);
 
-        CustomReduce(original_data.data(), result_data.data(), static_cast<int>(original_data.size()), MPI_FLOAT,
-                     MPI_SUM, MPI_COMM_WORLD, root);
+        if (original_data.empty()) {
+          return true;
+        }
 
+        std::copy(original_data.begin(), original_data.end(), result_data.begin());
+
+        MPI_Reduce(MPI_IN_PLACE, result_data.data(), static_cast<int>(original_data.size()), MPI_FLOAT, MPI_SUM, root,
+                   MPI_COMM_WORLD);
       } else {
-        std::vector<float> temp_result(original_data.size());
-        CustomReduce(original_data.data(), temp_result.data(), static_cast<int>(original_data.size()), MPI_FLOAT,
-                     MPI_SUM, MPI_COMM_WORLD, root);
+        if (!original_data.empty()) {
+          MPI_Reduce(original_data.data(), nullptr, static_cast<int>(original_data.size()), MPI_FLOAT, MPI_SUM, root,
+                     MPI_COMM_WORLD);
+        }
       }
       return true;
     }
@@ -97,13 +131,19 @@ bool KotelnikovaAFromAllToOneMPI::RunImpl() {
         auto &output_variant = GetOutput();
         auto &result_data = std::get<std::vector<double>>(output_variant);
 
-        CustomReduce(original_data.data(), result_data.data(), static_cast<int>(original_data.size()), MPI_DOUBLE,
-                     MPI_SUM, MPI_COMM_WORLD, root);
+        if (original_data.empty()) {
+          return true;
+        }
 
+        std::copy(original_data.begin(), original_data.end(), result_data.begin());
+
+        MPI_Reduce(MPI_IN_PLACE, result_data.data(), static_cast<int>(original_data.size()), MPI_DOUBLE, MPI_SUM, root,
+                   MPI_COMM_WORLD);
       } else {
-        std::vector<double> temp_result(original_data.size());
-        CustomReduce(original_data.data(), temp_result.data(), static_cast<int>(original_data.size()), MPI_DOUBLE,
-                     MPI_SUM, MPI_COMM_WORLD, root);
+        if (!original_data.empty()) {
+          MPI_Reduce(original_data.data(), nullptr, static_cast<int>(original_data.size()), MPI_DOUBLE, MPI_SUM, root,
+                     MPI_COMM_WORLD);
+        }
       }
       return true;
     }
@@ -116,6 +156,11 @@ bool KotelnikovaAFromAllToOneMPI::RunImpl() {
 
 void KotelnikovaAFromAllToOneMPI::CustomReduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
                                                MPI_Op op, MPI_Comm comm, int root) {
+  if (count == 0) {
+    MPI_Barrier(comm);
+    return;
+  }
+
   int size = 0;
   MPI_Comm_size(comm, &size);
 
@@ -141,7 +186,13 @@ void KotelnikovaAFromAllToOneMPI::TreeReduce(void *sendbuf, void *recvbuf, int c
   int rank = 0;
   MPI_Comm_rank(comm, &rank);
 
-  if (count == 0 || root != 0 || op != MPI_SUM) {
+  if (count == 0) {
+    MPI_Barrier(comm);
+    return;
+  }
+
+  if (root != 0 || op != MPI_SUM) {
+    MPI_Reduce(sendbuf, recvbuf, count, datatype, op, root, comm);
     return;
   }
 

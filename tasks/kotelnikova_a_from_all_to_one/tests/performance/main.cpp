@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <random>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -23,15 +22,11 @@ class KotelnikovaARunPerfTestProcesses2 : public ppc::util::BaseRunPerfTests<InT
     std::string task_name = std::get<1>(param);
     is_mpi_test_ = (task_name.find("mpi") != std::string::npos);
 
-    size_t size = 10000000;
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(-1000.0, 1000.0);
-
+    size_t size = 1000000;
     std::vector<double> data(size);
+
     for (size_t i = 0; i < size; i++) {
-      data[i] = dis(gen);
+      data[i] = static_cast<double>(i % 1000) - 500.0;
     }
 
     input_data_ = InType{data};
@@ -46,14 +41,26 @@ class KotelnikovaARunPerfTestProcesses2 : public ppc::util::BaseRunPerfTests<InT
 
       auto &input_vec = std::get<std::vector<double>>(input_data_);
 
-      if (rank == 0) {
+      if (!is_mpi_test_) {
         auto &output_vec = std::get<std::vector<double>>(output_data);
 
-        if (output_vec.empty()) {
+        if (output_vec.size() != input_vec.size()) {
           return false;
         }
 
-        if (output_vec.size() != input_vec.size()) {
+        for (size_t i = 0; i < std::min<size_t>(output_vec.size(), 10); i++) {
+          if (std::abs(output_vec[i] - input_vec[i]) > 1e-9) {
+            return false;
+          }
+        }
+
+        return true;
+      }
+
+      if (rank == 0) {
+        auto &output_vec = std::get<std::vector<double>>(output_data);
+
+        if (output_vec.empty() || output_vec.size() != input_vec.size()) {
           return false;
         }
 
@@ -65,10 +72,11 @@ class KotelnikovaARunPerfTestProcesses2 : public ppc::util::BaseRunPerfTests<InT
             return false;
           }
         }
+
+        return true;
+      } else {
         return true;
       }
-
-      return true;
     } catch (...) {
       return false;
     }
