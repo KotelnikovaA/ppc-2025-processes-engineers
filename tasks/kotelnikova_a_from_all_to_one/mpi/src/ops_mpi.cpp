@@ -14,8 +14,9 @@ namespace kotelnikova_a_from_all_to_one {
 
 namespace {
 
-template <typename T, MPI_Datatype MpiType>
-bool ProcessReduce(const std::vector<T> &original_data, int rank, int root, int world_size, OutType &output) {
+template <typename T>
+bool ProcessReduce(const std::vector<T> &original_data, int rank, int root, int world_size, OutType &output,
+                   MPI_Datatype mpi_type) {
   if (world_size == 1) {
     if (rank == root) {
       auto &result_data = std::get<std::vector<T>>(output);
@@ -33,11 +34,11 @@ bool ProcessReduce(const std::vector<T> &original_data, int rank, int root, int 
 
     std::ranges::copy(original_data, result_data.begin());
 
-    MPI_Reduce(MPI_IN_PLACE, result_data.data(), static_cast<int>(original_data.size()), MpiType, MPI_SUM, root,
+    MPI_Reduce(MPI_IN_PLACE, result_data.data(), static_cast<int>(original_data.size()), mpi_type, MPI_SUM, root,
                MPI_COMM_WORLD);
   } else {
     if (!original_data.empty()) {
-      MPI_Reduce(original_data.data(), nullptr, static_cast<int>(original_data.size()), MpiType, MPI_SUM, root,
+      MPI_Reduce(original_data.data(), nullptr, static_cast<int>(original_data.size()), mpi_type, MPI_SUM, root,
                  MPI_COMM_WORLD);
     }
   }
@@ -92,14 +93,14 @@ bool KotelnikovaAFromAllToOneMPI::RunImpl() {
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
     if (std::holds_alternative<std::vector<int>>(input)) {
-      return ProcessReduce<int, MPI_INT>(std::get<std::vector<int>>(input), rank, root, world_size, GetOutput());
+      return ProcessReduce<int>(std::get<std::vector<int>>(input), rank, root, world_size, GetOutput(), MPI_INT);
     }
     if (std::holds_alternative<std::vector<float>>(input)) {
-      return ProcessReduce<float, MPI_FLOAT>(std::get<std::vector<float>>(input), rank, root, world_size, GetOutput());
+      return ProcessReduce<float>(std::get<std::vector<float>>(input), rank, root, world_size, GetOutput(), MPI_FLOAT);
     }
     if (std::holds_alternative<std::vector<double>>(input)) {
-      return ProcessReduce<double, MPI_DOUBLE>(std::get<std::vector<double>>(input), rank, root, world_size,
-                                               GetOutput());
+      return ProcessReduce<double>(std::get<std::vector<double>>(input), rank, root, world_size, GetOutput(),
+                                   MPI_DOUBLE);
     }
 
     return false;
