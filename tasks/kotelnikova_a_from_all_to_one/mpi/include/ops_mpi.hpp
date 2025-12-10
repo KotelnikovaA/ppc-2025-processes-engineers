@@ -16,7 +16,7 @@ class KotelnikovaAFromAllToOneMPI : public BaseTask {
 
   void TreeReduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm, int root);
   void CustomReduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm, int root);
-  void PerformOperation(void *inbuf, void *inoutbuf, int count, MPI_Datatype datatype);
+  static void PerformOperation(void *inbuf, void *inoutbuf, int count, MPI_Datatype datatype);
 
  private:
   template <typename T>

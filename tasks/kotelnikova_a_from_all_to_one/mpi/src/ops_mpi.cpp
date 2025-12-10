@@ -88,9 +88,9 @@ bool KotelnikovaAFromAllToOneMPI::ProcessVector(const InType &input, int rank, i
     CustomReduce(result_data.data(), result_data.data(), static_cast<int>(original_data.size()), mpi_type, MPI_SUM,
                  MPI_COMM_WORLD, root);
   } else {
-    const void *sendbuf = original_data.data();
-    CustomReduce(const_cast<void *>(sendbuf), nullptr, static_cast<int>(original_data.size()), mpi_type, MPI_SUM,
-                 MPI_COMM_WORLD, root);
+    std::vector<T> send_buffer = original_data;
+    CustomReduce(send_buffer.data(), nullptr, static_cast<int>(original_data.size()), mpi_type, MPI_SUM, MPI_COMM_WORLD,
+                 root);
   }
   return true;
 }
@@ -173,7 +173,7 @@ void KotelnikovaAFromAllToOneMPI::TreeReduce(void *sendbuf, void *recvbuf, int c
   }
 }
 
-void KotelnikovaAFromAllToOneMPI::PerformOperation(void *inbuf, void *inoutbuf, int count, MPI_Datatype datatype) {
+static void PerformOperationImpl(void *inbuf, void *inoutbuf, int count, MPI_Datatype datatype) {
   if (datatype == MPI_INT) {
     auto *in = static_cast<int *>(inbuf);
     auto *inout = static_cast<int *>(inoutbuf);
@@ -195,6 +195,10 @@ void KotelnikovaAFromAllToOneMPI::PerformOperation(void *inbuf, void *inoutbuf, 
   } else {
     throw std::runtime_error("Unsupported datatype");
   }
+}
+
+void KotelnikovaAFromAllToOneMPI::PerformOperation(void *inbuf, void *inoutbuf, int count, MPI_Datatype datatype) {
+  PerformOperationImpl(inbuf, inoutbuf, count, datatype);
 }
 
 bool KotelnikovaAFromAllToOneMPI::PostProcessingImpl() {
