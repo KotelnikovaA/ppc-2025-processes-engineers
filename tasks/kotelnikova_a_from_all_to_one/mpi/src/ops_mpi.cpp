@@ -53,94 +53,46 @@ bool KotelnikovaAFromAllToOneMPI::RunImpl() {
     auto input = GetInput();
     int rank = 0;
     int root = 0;
-    int world_size = 1;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-    if (world_size == 1) {
-      if (rank == root) {
-        auto &output = GetOutput();
-        if (std::holds_alternative<std::vector<int>>(input)) {
-          auto &input_vec = std::get<std::vector<int>>(input);
-          auto &output_vec = std::get<std::vector<int>>(output);
-          std::ranges::copy(input_vec, output_vec.begin());
-        } else if (std::holds_alternative<std::vector<float>>(input)) {
-          auto &input_vec = std::get<std::vector<float>>(input);
-          auto &output_vec = std::get<std::vector<float>>(output);
-          std::ranges::copy(input_vec, output_vec.begin());
-        } else if (std::holds_alternative<std::vector<double>>(input)) {
-          auto &input_vec = std::get<std::vector<double>>(input);
-          auto &output_vec = std::get<std::vector<double>>(output);
-          std::ranges::copy(input_vec, output_vec.begin());
-        }
-      }
-      return true;
-    }
 
     if (std::holds_alternative<std::vector<int>>(input)) {
-      auto &original_data = std::get<std::vector<int>>(input);
-
-      if (original_data.empty()) {
-        return true;
-      }
-
-      if (rank == root) {
-        auto &output_variant = GetOutput();
-        auto &result_data = std::get<std::vector<int>>(output_variant);
-        std::ranges::copy(original_data, result_data.begin());
-        CustomReduce(result_data.data(), result_data.data(), static_cast<int>(original_data.size()), MPI_INT, MPI_SUM,
-                     MPI_COMM_WORLD, root);
-      } else {
-        CustomReduce(original_data.data(), nullptr, static_cast<int>(original_data.size()), MPI_INT, MPI_SUM,
-                     MPI_COMM_WORLD, root);
-      }
-      return true;
+      return ProcessVector<int, MPI_INT>(input, rank, root);
     }
 
     if (std::holds_alternative<std::vector<float>>(input)) {
-      auto &original_data = std::get<std::vector<float>>(input);
-
-      if (original_data.empty()) {
-        return true;
-      }
-
-      if (rank == root) {
-        auto &output_variant = GetOutput();
-        auto &result_data = std::get<std::vector<float>>(output_variant);
-        std::ranges::copy(original_data, result_data.begin());
-        CustomReduce(result_data.data(), result_data.data(), static_cast<int>(original_data.size()), MPI_FLOAT, MPI_SUM,
-                     MPI_COMM_WORLD, root);
-      } else {
-        CustomReduce(original_data.data(), nullptr, static_cast<int>(original_data.size()), MPI_FLOAT, MPI_SUM,
-                     MPI_COMM_WORLD, root);
-      }
-      return true;
+      return ProcessVector<float, MPI_FLOAT>(input, rank, root);
     }
 
     if (std::holds_alternative<std::vector<double>>(input)) {
-      auto &original_data = std::get<std::vector<double>>(input);
-
-      if (original_data.empty()) {
-        return true;
-      }
-
-      if (rank == root) {
-        auto &output_variant = GetOutput();
-        auto &result_data = std::get<std::vector<double>>(output_variant);
-        std::ranges::copy(original_data, result_data.begin());
-        CustomReduce(result_data.data(), result_data.data(), static_cast<int>(original_data.size()), MPI_DOUBLE,
-                     MPI_SUM, MPI_COMM_WORLD, root);
-      } else {
-        CustomReduce(original_data.data(), nullptr, static_cast<int>(original_data.size()), MPI_DOUBLE, MPI_SUM,
-                     MPI_COMM_WORLD, root);
-      }
-      return true;
+      return ProcessVector<double, MPI_DOUBLE>(input, rank, root);
     }
 
     return false;
   } catch (...) {
     return false;
   }
+}
+
+template <typename T, MPI_Datatype MpiType>
+bool KotelnikovaAFromAllToOneMPI::ProcessVector(const InType &input, int rank, int root) {
+  auto &original_data = std::get<std::vector<T>>(input);
+
+  if (original_data.empty()) {
+    return true;
+  }
+
+  if (rank == root) {
+    auto &output_variant = GetOutput();
+    auto &result_data = std::get<std::vector<T>>(output_variant);
+    std::ranges::copy(original_data, result_data.begin());
+    CustomReduce(result_data.data(), result_data.data(), static_cast<int>(original_data.size()), MpiType, MPI_SUM,
+                 MPI_COMM_WORLD, root);
+  } else {
+    const void *sendbuf = original_data.data();
+    CustomReduce(const_cast<void *>(sendbuf), nullptr, static_cast<int>(original_data.size()), MpiType, MPI_SUM,
+                 MPI_COMM_WORLD, root);
+  }
+  return true;
 }
 
 void KotelnikovaAFromAllToOneMPI::CustomReduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
