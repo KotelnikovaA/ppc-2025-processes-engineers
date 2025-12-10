@@ -10,6 +10,32 @@
 
 #include "kotelnikova_a_from_all_to_one/common/include/common.hpp"
 
+namespace {
+void PerformOperationImpl(void *inbuf, void *inoutbuf, int count, MPI_Datatype datatype) {
+  if (datatype == MPI_INT) {
+    auto *in = static_cast<int *>(inbuf);
+    auto *inout = static_cast<int *>(inoutbuf);
+    for (int i = 0; i < count; i++) {
+      inout[i] += in[i];
+    }
+  } else if (datatype == MPI_FLOAT) {
+    auto *in = static_cast<float *>(inbuf);
+    auto *inout = static_cast<float *>(inoutbuf);
+    for (int i = 0; i < count; i++) {
+      inout[i] += in[i];
+    }
+  } else if (datatype == MPI_DOUBLE) {
+    auto *in = static_cast<double *>(inbuf);
+    auto *inout = static_cast<double *>(inoutbuf);
+    for (int i = 0; i < count; i++) {
+      inout[i] += in[i];
+    }
+  } else {
+    throw std::runtime_error("Unsupported datatype");
+  }
+}
+}  // namespace
+
 namespace kotelnikova_a_from_all_to_one {
 
 KotelnikovaAFromAllToOneMPI::KotelnikovaAFromAllToOneMPI(const InType &in) {
@@ -170,30 +196,6 @@ void KotelnikovaAFromAllToOneMPI::TreeReduce(void *sendbuf, void *recvbuf, int c
 
   if (rank == root && recvbuf != nullptr) {
     std::memcpy(recvbuf, local_buf.data(), total_bytes);
-  }
-}
-
-static void PerformOperationImpl(void *inbuf, void *inoutbuf, int count, MPI_Datatype datatype) {
-  if (datatype == MPI_INT) {
-    auto *in = static_cast<int *>(inbuf);
-    auto *inout = static_cast<int *>(inoutbuf);
-    for (int i = 0; i < count; i++) {
-      inout[i] += in[i];
-    }
-  } else if (datatype == MPI_FLOAT) {
-    auto *in = static_cast<float *>(inbuf);
-    auto *inout = static_cast<float *>(inoutbuf);
-    for (int i = 0; i < count; i++) {
-      inout[i] += in[i];
-    }
-  } else if (datatype == MPI_DOUBLE) {
-    auto *in = static_cast<double *>(inbuf);
-    auto *inout = static_cast<double *>(inoutbuf);
-    for (int i = 0; i < count; i++) {
-      inout[i] += in[i];
-    }
-  } else {
-    throw std::runtime_error("Unsupported datatype");
   }
 }
 

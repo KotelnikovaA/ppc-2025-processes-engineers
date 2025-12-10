@@ -14,7 +14,8 @@ class KotelnikovaAFromAllToOneMPI : public BaseTask {
   }
   explicit KotelnikovaAFromAllToOneMPI(const InType &in);
 
-  void CustomReduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm, int root);
+  static void CustomReduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm,
+                           int root);
 
  private:
   template <typename T>
