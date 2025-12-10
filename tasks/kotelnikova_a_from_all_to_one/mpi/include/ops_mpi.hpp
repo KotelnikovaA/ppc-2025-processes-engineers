@@ -19,8 +19,8 @@ class KotelnikovaAFromAllToOneMPI : public BaseTask {
   void PerformOperation(void *inbuf, void *inoutbuf, int count, MPI_Datatype datatype);
 
  private:
-  template <typename T, MPI_Datatype MpiType>
-  bool ProcessVector(const InType &input, int rank, int root);
+  template <typename T>
+  bool ProcessVector(const InType &input, int rank, int root, MPI_Datatype mpi_type);
 
   bool ValidationImpl() override;
   bool PreProcessingImpl() override;

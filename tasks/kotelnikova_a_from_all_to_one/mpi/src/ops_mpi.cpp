@@ -56,15 +56,15 @@ bool KotelnikovaAFromAllToOneMPI::RunImpl() {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     if (std::holds_alternative<std::vector<int>>(input)) {
-      return ProcessVector<int, MPI_INT>(input, rank, root);
+      return ProcessVector<int>(input, rank, root, MPI_INT);
     }
 
     if (std::holds_alternative<std::vector<float>>(input)) {
-      return ProcessVector<float, MPI_FLOAT>(input, rank, root);
+      return ProcessVector<float>(input, rank, root, MPI_FLOAT);
     }
 
     if (std::holds_alternative<std::vector<double>>(input)) {
-      return ProcessVector<double, MPI_DOUBLE>(input, rank, root);
+      return ProcessVector<double>(input, rank, root, MPI_DOUBLE);
     }
 
     return false;
@@ -73,8 +73,8 @@ bool KotelnikovaAFromAllToOneMPI::RunImpl() {
   }
 }
 
-template <typename T, MPI_Datatype MpiType>
-bool KotelnikovaAFromAllToOneMPI::ProcessVector(const InType &input, int rank, int root) {
+template <typename T>
+bool KotelnikovaAFromAllToOneMPI::ProcessVector(const InType &input, int rank, int root, MPI_Datatype mpi_type) {
   auto &original_data = std::get<std::vector<T>>(input);
 
   if (original_data.empty()) {
@@ -85,11 +85,11 @@ bool KotelnikovaAFromAllToOneMPI::ProcessVector(const InType &input, int rank, i
     auto &output_variant = GetOutput();
     auto &result_data = std::get<std::vector<T>>(output_variant);
     std::ranges::copy(original_data, result_data.begin());
-    CustomReduce(result_data.data(), result_data.data(), static_cast<int>(original_data.size()), MpiType, MPI_SUM,
+    CustomReduce(result_data.data(), result_data.data(), static_cast<int>(original_data.size()), mpi_type, MPI_SUM,
                  MPI_COMM_WORLD, root);
   } else {
     const void *sendbuf = original_data.data();
-    CustomReduce(const_cast<void *>(sendbuf), nullptr, static_cast<int>(original_data.size()), MpiType, MPI_SUM,
+    CustomReduce(const_cast<void *>(sendbuf), nullptr, static_cast<int>(original_data.size()), mpi_type, MPI_SUM,
                  MPI_COMM_WORLD, root);
   }
   return true;
@@ -200,5 +200,12 @@ void KotelnikovaAFromAllToOneMPI::PerformOperation(void *inbuf, void *inoutbuf, 
 bool KotelnikovaAFromAllToOneMPI::PostProcessingImpl() {
   return true;
 }
+
+template bool KotelnikovaAFromAllToOneMPI::ProcessVector<int>(const InType &input, int rank, int root,
+                                                              MPI_Datatype mpi_type);
+template bool KotelnikovaAFromAllToOneMPI::ProcessVector<float>(const InType &input, int rank, int root,
+                                                                MPI_Datatype mpi_type);
+template bool KotelnikovaAFromAllToOneMPI::ProcessVector<double>(const InType &input, int rank, int root,
+                                                                 MPI_Datatype mpi_type);
 
 }  // namespace kotelnikova_a_from_all_to_one
