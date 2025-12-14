@@ -207,20 +207,20 @@ class KotelnikovaAFuncTestsProcesses3 : public ppc::util::BaseRunFuncTests<InTyp
     int center_y = data.height / 2;
     int size = 8;
 
-    for (int y = -size / 2; y <= size / 2; ++y) {
+    for (int dy = -size / 2; dy <= size / 2; ++dy) {
       int x = center_x - size / 2;
       int px = x;
-      int py = center_y + y;
+      int py = center_y + dy;
       if (px >= 0 && px < data.width && py >= 0 && py < data.height) {
         int idx = py * data.width + px;
         data.pixels[idx] = 255;
       }
     }
 
-    for (int x = -size / 2; x <= size / 2; ++x) {
-      int y = center_y + size / 2;
-      int px = center_x + x;
-      int py = y;
+    for (int dx = -size / 2; dx <= size / 2; ++dx) {
+      int y_pos = center_y + size / 2;
+      int px = center_x + dx;
+      int py = y_pos;
       if (px >= 0 && px < data.width && py >= 0 && py < data.height) {
         int idx = py * data.width + px;
         data.pixels[idx] = 255;
