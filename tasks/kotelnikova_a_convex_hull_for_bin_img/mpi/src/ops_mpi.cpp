@@ -9,12 +9,104 @@
 #include <utility>
 #include <vector>
 
+#include "kotelnikova_a_convex_hull_for_bin_img/common/include/common.hpp"
+
 namespace kotelnikova_a_convex_hull_for_bin_img {
 
 namespace {
 
 int Cross(const Point &o, const Point &a, const Point &b) {
   return ((a.x - o.x) * (b.y - o.y)) - ((a.y - o.y) * (b.x - o.x));
+}
+
+void ProcessNeighbors(const Point &p, int width, int start_row, int end_row, const ImageData &local_data,
+                      std::vector<bool> &visited_local, std::queue<Point> &q) {
+  const std::vector<std::pair<int, int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+
+  for (const auto &dir : directions) {
+    int nx = p.x + dir.first;
+    int ny = p.y + dir.second;
+
+    if (nx >= 0 && nx < width && ny >= start_row && ny < end_row) {
+      int nlocal_idx = ((ny - start_row) * width) + nx;
+      int nglobal_idx = (ny * width) + nx;
+
+      if (local_data.pixels[nglobal_idx] == 255 && !visited_local[nlocal_idx]) {
+        visited_local[nlocal_idx] = true;
+        q.emplace(nx, ny);
+      }
+    }
+  }
+}
+
+void ProcessLocalRegion(int start_row, int end_row, int width, const ImageData &local_data,
+                        std::vector<std::vector<Point>> &local_components) {
+  std::vector<bool> visited_local(static_cast<size_t>(width) * (end_row - start_row), false);
+
+  for (int row_y = start_row; row_y < end_row; ++row_y) {
+    for (int col_x = 0; col_x < width; ++col_x) {
+      int local_idx = ((row_y - start_row) * width) + col_x;
+      int global_idx = (row_y * width) + col_x;
+
+      if (local_data.pixels[global_idx] == 255 && !visited_local[local_idx]) {
+        std::vector<Point> component;
+        std::queue<Point> q;
+        q.emplace(col_x, row_y);
+        visited_local[local_idx] = true;
+
+        while (!q.empty()) {
+          Point p = q.front();
+          q.pop();
+          component.push_back(p);
+
+          ProcessNeighbors(p, width, start_row, end_row, local_data, visited_local, q);
+        }
+
+        if (!component.empty()) {
+          local_components.push_back(component);
+        }
+      }
+    }
+  }
+}
+
+void GatherComponentsFromRank0(std::vector<std::vector<Point>> &components) {
+  int size = 0;
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+  for (int i = 1; i < size; ++i) {
+    int comp_count = 0;
+    MPI_Recv(&comp_count, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    for (int j = 0; j < comp_count; ++j) {
+      int comp_size = 0;
+      MPI_Recv(&comp_size, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+      std::vector<Point> component(comp_size);
+      MPI_Recv(component.data(), comp_size * 2, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+      components.push_back(component);
+    }
+  }
+}
+
+void SendComponentsToRank0(const std::vector<std::vector<Point>> &local_components) {
+  int comp_count = static_cast<int>(local_components.size());
+  MPI_Send(&comp_count, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+
+  for (const auto &component : local_components) {
+    int comp_size = static_cast<int>(component.size());
+    MPI_Send(&comp_size, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+
+    std::vector<int> point_data;
+    point_data.reserve(static_cast<size_t>(comp_size) * 2);
+    for (const auto &point : component) {
+      point_data.push_back(point.x);
+      point_data.push_back(point.y);
+    }
+
+    MPI_Send(point_data.data(), comp_size * 2, MPI_INT, 0, 0, MPI_COMM_WORLD);
+  }
 }
 
 }  // namespace
@@ -101,84 +193,14 @@ void KotelnikovaAConvexHullForBinImgMPI::FindConnectedComponentsMpi() {
   int start_row = (rank_ * rows_per_proc) + std::min(rank_, remainder);
   int end_row = start_row + rows_per_proc + (rank_ < remainder ? 1 : 0);
 
-  std::vector<bool> visited_local(static_cast<size_t>(width) * (end_row - start_row), false);
   std::vector<std::vector<Point>> local_components;
-
-  std::vector<std::pair<int, int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-
-  for (int row_y = start_row; row_y < end_row; ++row_y) {
-    for (int col_x = 0; col_x < width; ++col_x) {
-      int local_idx = ((row_y - start_row) * width) + col_x;
-      int global_idx = (row_y * width) + col_x;
-
-      if (local_data_.pixels[global_idx] == 255 && !visited_local[local_idx]) {
-        std::vector<Point> component;
-        std::queue<Point> q;
-        q.emplace(col_x, row_y);
-        visited_local[local_idx] = true;
-
-        while (!q.empty()) {
-          Point p = q.front();
-          q.pop();
-          component.push_back(p);
-
-          for (const auto &dir : directions) {
-            int nx = p.x + dir.first;
-            int ny = p.y + dir.second;
-
-            if (nx >= 0 && nx < width && ny >= start_row && ny < end_row) {
-              int nlocal_idx = ((ny - start_row) * width) + nx;
-              int nglobal_idx = (ny * width) + nx;
-
-              if (local_data_.pixels[nglobal_idx] == 255 && !visited_local[nlocal_idx]) {
-                visited_local[nlocal_idx] = true;
-                q.emplace(nx, ny);
-              }
-            }
-          }
-        }
-
-        if (!component.empty()) {
-          local_components.push_back(component);
-        }
-      }
-    }
-  }
+  ProcessLocalRegion(start_row, end_row, width, local_data_, local_components);
 
   if (rank_ == 0) {
     local_data_.components = local_components;
-
-    for (int i = 1; i < size_; ++i) {
-      int comp_count = 0;
-      MPI_Recv(&comp_count, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-      for (int j = 0; j < comp_count; ++j) {
-        int comp_size = 0;
-        MPI_Recv(&comp_size, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-        std::vector<Point> component(comp_size);
-        MPI_Recv(component.data(), comp_size * 2, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-        local_data_.components.push_back(component);
-      }
-    }
+    GatherComponentsFromRank0(local_data_.components);
   } else {
-    int comp_count = static_cast<int>(local_components.size());
-    MPI_Send(&comp_count, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
-
-    for (const auto &component : local_components) {
-      int comp_size = static_cast<int>(component.size());
-      MPI_Send(&comp_size, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
-
-      std::vector<int> point_data;
-      point_data.reserve(static_cast<size_t>(comp_size) * 2);
-      for (const auto &point : component) {
-        point_data.push_back(point.x);
-        point_data.push_back(point.y);
-      }
-
-      MPI_Send(point_data.data(), comp_size * 2, MPI_INT, 0, 0, MPI_COMM_WORLD);
-    }
+    SendComponentsToRank0(local_components);
   }
 }
 

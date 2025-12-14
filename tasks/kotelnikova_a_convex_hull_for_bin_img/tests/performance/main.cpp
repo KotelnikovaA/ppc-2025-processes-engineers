@@ -89,26 +89,22 @@ class KotelnikovaARunPerfTestProcesses3 : public ppc::util::BaseRunPerfTests<InT
   }
 
  private:
-  static void CreateHeavyTestPattern(ImageData &data) {
-    std::ranges::fill(data.pixels, 0);
-
-    int center_x = data.width / 2;
-    int center_y = data.height / 2;
-    int big_radius = std::min(data.width, data.height) / 3;
-
+  static void DrawMainCircle(ImageData &data, int center_x, int center_y, int big_radius) {
     for (int coord_y = -big_radius; coord_y <= big_radius; ++coord_y) {
       for (int coord_x = -big_radius; coord_x <= big_radius; ++coord_x) {
         if ((coord_x * coord_x) + (coord_y * coord_y) <= big_radius * big_radius) {
           int px = center_x + coord_x;
           int py = center_y + coord_y;
           if (px >= 0 && px < data.width && py >= 0 && py < data.height) {
-            size_t idx = static_cast<size_t>(py) * static_cast<size_t>(data.width) + static_cast<size_t>(px);
+            size_t idx = (static_cast<size_t>(py) * static_cast<size_t>(data.width)) + static_cast<size_t>(px);
             data.pixels[idx] = 255;
           }
         }
       }
     }
+  }
 
+  static void DrawSmallCircles(ImageData &data, int center_x, int center_y, int big_radius) {
     int small_radius = data.width / 20;
     int circle_count = 16;
 
@@ -123,16 +119,17 @@ class KotelnikovaARunPerfTestProcesses3 : public ppc::util::BaseRunPerfTests<InT
             int px = circ_x + coord_x;
             int py = circ_y + coord_y;
             if (px >= 0 && px < data.width && py >= 0 && py < data.height) {
-              size_t idx = static_cast<size_t>(py) * static_cast<size_t>(data.width) + static_cast<size_t>(px);
+              size_t idx = (static_cast<size_t>(py) * static_cast<size_t>(data.width)) + static_cast<size_t>(px);
               data.pixels[idx] = 255;
             }
           }
         }
       }
     }
+  }
 
+  static void DrawHorizontalGridLines(ImageData &data) {
     int grid_cells = 20;
-    int cell_width = data.width / grid_cells;
     int cell_height = data.height / grid_cells;
 
     for (int index = 1; index < grid_cells; ++index) {
@@ -142,12 +139,18 @@ class KotelnikovaARunPerfTestProcesses3 : public ppc::util::BaseRunPerfTests<InT
       for (int coord_y = line_y - line_thickness; coord_y <= line_y + line_thickness; ++coord_y) {
         if (coord_y >= 0 && coord_y < data.height) {
           for (int coord_x = 0; coord_x < data.width; ++coord_x) {
-            size_t idx = static_cast<size_t>(coord_y) * static_cast<size_t>(data.width) + static_cast<size_t>(coord_x);
+            size_t idx =
+                (static_cast<size_t>(coord_y) * static_cast<size_t>(data.width)) + static_cast<size_t>(coord_x);
             data.pixels[idx] = 255;
           }
         }
       }
     }
+  }
+
+  static void DrawVerticalGridLines(ImageData &data) {
+    int grid_cells = 20;
+    int cell_width = data.width / grid_cells;
 
     for (int index = 1; index < grid_cells; ++index) {
       int line_x = index * cell_width;
@@ -158,14 +161,16 @@ class KotelnikovaARunPerfTestProcesses3 : public ppc::util::BaseRunPerfTests<InT
           for (int coord_y = 0; coord_y < data.height; ++coord_y) {
             if (coord_y % 4 < 2) {
               size_t idx =
-                  static_cast<size_t>(coord_y) * static_cast<size_t>(data.width) + static_cast<size_t>(coord_x);
+                  (static_cast<size_t>(coord_y) * static_cast<size_t>(data.width)) + static_cast<size_t>(coord_x);
               data.pixels[idx] = 255;
             }
           }
         }
       }
     }
+  }
 
+  static void DrawRectangles(ImageData &data) {
     int rect_count = 8;
     for (int index = 0; index < rect_count; ++index) {
       int rect_width = data.width / (rect_count / 2 + 2);
@@ -183,12 +188,14 @@ class KotelnikovaARunPerfTestProcesses3 : public ppc::util::BaseRunPerfTests<InT
 
       for (int coord_y = y1; coord_y <= y2; ++coord_y) {
         for (int coord_x = x1; coord_x <= x2; ++coord_x) {
-          size_t idx = static_cast<size_t>(coord_y) * static_cast<size_t>(data.width) + static_cast<size_t>(coord_x);
+          size_t idx = (static_cast<size_t>(coord_y) * static_cast<size_t>(data.width)) + static_cast<size_t>(coord_x);
           data.pixels[idx] = 255;
         }
       }
     }
+  }
 
+  static void DrawDiagonalLines(ImageData &data) {
     int diagonal_count = 15;
     for (int index = 0; index < diagonal_count; ++index) {
       int start_x = (index * data.width) / diagonal_count;
@@ -209,6 +216,21 @@ class KotelnikovaARunPerfTestProcesses3 : public ppc::util::BaseRunPerfTests<InT
     }
   }
 
+  static void CreateHeavyTestPattern(ImageData &data) {
+    std::ranges::fill(data.pixels, 0);
+
+    int center_x = data.width / 2;
+    int center_y = data.height / 2;
+    int big_radius = std::min(data.width, data.height) / 3;
+
+    DrawMainCircle(data, center_x, center_y, big_radius);
+    DrawSmallCircles(data, center_x, center_y, big_radius);
+    DrawHorizontalGridLines(data);
+    DrawVerticalGridLines(data);
+    DrawRectangles(data);
+    DrawDiagonalLines(data);
+  }
+
   static void DrawThickLine(ImageData &data, int x1, int y1, int x2, int y2, int thickness) {
     for (int thickness_offset = -thickness / 2; thickness_offset <= thickness / 2; ++thickness_offset) {
       DrawLine(data, x1, y1 + thickness_offset, x2, y2 + thickness_offset);
@@ -225,7 +247,7 @@ class KotelnikovaARunPerfTestProcesses3 : public ppc::util::BaseRunPerfTests<InT
 
     while (true) {
       if (x1 >= 0 && x1 < data.width && y1 >= 0 && y1 < data.height) {
-        size_t idx = static_cast<size_t>(y1) * static_cast<size_t>(data.width) + static_cast<size_t>(x1);
+        size_t idx = (static_cast<size_t>(y1) * static_cast<size_t>(data.width)) + static_cast<size_t>(x1);
         data.pixels[idx] = 255;
       }
 

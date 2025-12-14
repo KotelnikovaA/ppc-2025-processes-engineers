@@ -8,12 +8,52 @@
 #include <utility>
 #include <vector>
 
+#include "kotelnikova_a_convex_hull_for_bin_img/common/include/common.hpp"
+
 namespace kotelnikova_a_convex_hull_for_bin_img {
 
 namespace {
 
 int Cross(const Point &o, const Point &a, const Point &b) {
   return ((a.x - o.x) * (b.y - o.y)) - ((a.y - o.y) * (b.x - o.x));
+}
+
+void ProcessPixelNeighbors(const Point &p, int width, int height, const ImageData &processed_data,
+                           std::vector<bool> &visited, std::queue<Point> &q) {
+  const std::vector<std::pair<int, int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+
+  for (const auto &dir : directions) {
+    int nx = p.x + dir.first;
+    int ny = p.y + dir.second;
+
+    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+      int nidx = (ny * width) + nx;
+      if (processed_data.pixels[static_cast<size_t>(nidx)] == 255 && !visited[static_cast<size_t>(nidx)]) {
+        visited[static_cast<size_t>(nidx)] = true;
+        q.emplace(nx, ny);
+      }
+    }
+  }
+}
+
+void ProcessConnectedComponent(int start_x, int start_y, int width, int height, const ImageData &processed_data,
+                               std::vector<bool> &visited, std::vector<std::vector<Point>> &components) {
+  std::vector<Point> component;
+  std::queue<Point> q;
+  q.emplace(start_x, start_y);
+  visited[static_cast<size_t>(start_y * width + start_x)] = true;
+
+  while (!q.empty()) {
+    Point p = q.front();
+    q.pop();
+    component.push_back(p);
+
+    ProcessPixelNeighbors(p, width, height, processed_data, visited, q);
+  }
+
+  if (!component.empty()) {
+    components.push_back(component);
+  }
 }
 
 }  // namespace
@@ -67,39 +107,11 @@ void KotelnikovaAConvexHullForBinImgSEQ::FindConnectedComponents() {
   std::vector<bool> visited(static_cast<size_t>(total_pixels), false);
   processed_data_.components.clear();
 
-  std::vector<std::pair<int, int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-
   for (int row_y = 0; row_y < height; ++row_y) {
     for (int col_x = 0; col_x < width; ++col_x) {
       int idx = (row_y * width) + col_x;
       if (processed_data_.pixels[static_cast<size_t>(idx)] == 255 && !visited[static_cast<size_t>(idx)]) {
-        std::vector<Point> component;
-        std::queue<Point> q;
-        q.emplace(col_x, row_y);
-        visited[static_cast<size_t>(idx)] = true;
-
-        while (!q.empty()) {
-          Point p = q.front();
-          q.pop();
-          component.push_back(p);
-
-          for (const auto &dir : directions) {
-            int nx = p.x + dir.first;
-            int ny = p.y + dir.second;
-
-            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-              int nidx = (ny * width) + nx;
-              if (processed_data_.pixels[static_cast<size_t>(nidx)] == 255 && !visited[static_cast<size_t>(nidx)]) {
-                visited[static_cast<size_t>(nidx)] = true;
-                q.emplace(nx, ny);
-              }
-            }
-          }
-        }
-
-        if (!component.empty()) {
-          processed_data_.components.push_back(component);
-        }
+        ProcessConnectedComponent(col_x, row_y, width, height, processed_data_, visited, processed_data_.components);
       }
     }
   }

@@ -116,8 +116,8 @@ class KotelnikovaAFuncTestsProcesses3 : public ppc::util::BaseRunFuncTests<InTyp
 
     for (int row = 0; row < size; ++row) {
       for (int col = 0; col <= row; ++col) {
-        int px = center_x - (size / 2) + col;
-        int py = center_y - (size / 2) + row;
+        int px = (center_x - (size / 2)) + col;
+        int py = (center_y - (size / 2)) + row;
         if (px >= 0 && px < data.width && py >= 0 && py < data.height) {
           int idx = (py * data.width) + px;
           data.pixels[idx] = 255;

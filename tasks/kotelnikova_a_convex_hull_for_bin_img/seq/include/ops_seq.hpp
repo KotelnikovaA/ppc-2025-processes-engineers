@@ -21,7 +21,7 @@ class KotelnikovaAConvexHullForBinImgSEQ : public BaseTask {
   bool PostProcessingImpl() override;
 
   void FindConnectedComponents();
-  std::vector<Point> GrahamScan(const std::vector<Point> &points);
+  static std::vector<Point> GrahamScan(const std::vector<Point> &points);
   void BinarizeImage();
 
   ImageData processed_data_;
