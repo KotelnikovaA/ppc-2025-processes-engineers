@@ -1,10 +1,15 @@
 #include <gtest/gtest.h>
 
+#include <array>
+#include <cstddef>
+#include <cstdlib>
+#include <string>
+#include <tuple>
+
 #include "kotelnikova_a_convex_hull_for_bin_img/common/include/common.hpp"
 #include "kotelnikova_a_convex_hull_for_bin_img/mpi/include/ops_mpi.hpp"
 #include "kotelnikova_a_convex_hull_for_bin_img/seq/include/ops_seq.hpp"
 #include "util/include/func_test_util.hpp"
-#include "util/include/util.hpp"
 
 namespace kotelnikova_a_convex_hull_for_bin_img {
 
@@ -37,7 +42,7 @@ class KotelnikovaAFuncTestsProcesses3 : public ppc::util::BaseRunFuncTests<InTyp
           const Point &p1 = hull[(i + 1) % hull.size()];
           const Point &p2 = hull[(i + 2) % hull.size()];
 
-          int cross = (p1.x - p0.x) * (p2.y - p1.y) - (p1.y - p0.y) * (p2.x - p1.x);
+          int cross = ((p1.x - p0.x) * (p2.y - p1.y)) - ((p1.y - p0.y) * (p2.x - p1.x));
           if (cross <= 0) {
             return false;
           }
@@ -55,84 +60,84 @@ class KotelnikovaAFuncTestsProcesses3 : public ppc::util::BaseRunFuncTests<InTyp
 
     data.width = 20 * test_case;
     data.height = 20 * test_case;
-    data.pixels.resize(data.width * data.height, 0);
+    data.pixels.resize(static_cast<size_t>(data.width) * static_cast<size_t>(data.height), 0);
 
     switch (test_case) {
       case 1:
-        createSquarePattern(data);
+        CreateSquarePattern(data);
         break;
       case 2:
-        createTrianglePattern(data);
+        CreateTrianglePattern(data);
         break;
       case 3:
-        createCirclePattern(data);
+        CreateCirclePattern(data);
         break;
       case 4:
-        createMultipleComponents(data);
+        CreateMultipleComponents(data);
         break;
       case 5:
-        createLinePattern(data);
+        CreateLinePattern(data);
         break;
       case 6:
-        createPatternWithHole(data);
+        CreatePatternWithHole(data);
         break;
       case 7:
-        createLShapePattern(data);
+        CreateLShapePattern(data);
         break;
       default:
-        createSquarePattern(data);
+        CreateSquarePattern(data);
     }
 
     return data;
   }
 
  private:
-  void createSquarePattern(ImageData &data) {
+  static void CreateSquarePattern(ImageData &data) {
     int center_x = data.width / 2;
     int center_y = data.height / 2;
     int size = 6;
 
-    for (int dy = -size / 2; dy <= size / 2; ++dy) {
-      for (int dx = -size / 2; dx <= size / 2; ++dx) {
-        int x = center_x + dx;
-        int y = center_y + dy;
+    for (int delta_y = -size / 2; delta_y <= size / 2; ++delta_y) {
+      for (int delta_x = -size / 2; delta_x <= size / 2; ++delta_x) {
+        int x = center_x + delta_x;
+        int y = center_y + delta_y;
         if (x >= 0 && x < data.width && y >= 0 && y < data.height) {
-          int idx = y * data.width + x;
+          int idx = (y * data.width) + x;
           data.pixels[idx] = 255;
         }
       }
     }
   }
 
-  void createTrianglePattern(ImageData &data) {
+  static void CreateTrianglePattern(ImageData &data) {
     int center_x = data.width / 2;
     int center_y = data.height / 2;
     int size = 8;
 
     for (int row = 0; row < size; ++row) {
       for (int col = 0; col <= row; ++col) {
-        int px = center_x - size / 2 + col;
-        int py = center_y - size / 2 + row;
+        int px = center_x - (size / 2) + col;
+        int py = center_y - (size / 2) + row;
         if (px >= 0 && px < data.width && py >= 0 && py < data.height) {
-          int idx = py * data.width + px;
+          int idx = (py * data.width) + px;
           data.pixels[idx] = 255;
         }
       }
     }
   }
 
-  void createCirclePattern(ImageData &data) {
+  static void CreateCirclePattern(ImageData &data) {
     int center_x = data.width / 2;
     int center_y = data.height / 2;
     int radius = 8;
 
-    for (int dy = -radius; dy <= radius; ++dy) {
-      for (int dx = -radius; dx <= radius; ++dx) {
-        if (dx * dx + dy * dy <= radius * radius) {
-          int px = center_x + dx;
-          int py = center_y + dy;
+    for (int delta_y = -radius; delta_y <= radius; ++delta_y) {
+      for (int delta_x = -radius; delta_x <= radius; ++delta_x) {
+        if ((delta_x * delta_x) + (delta_y * delta_y) <= radius * radius) {
+          int px = center_x + delta_x;
+          int py = center_y + delta_y;
           if (px >= 0 && px < data.width && py >= 0 && py < data.height) {
-            int idx = py * data.width + px;
+            int idx = (py * data.width) + px;
             data.pixels[idx] = 255;
           }
         }
@@ -140,89 +145,89 @@ class KotelnikovaAFuncTestsProcesses3 : public ppc::util::BaseRunFuncTests<InTyp
     }
   }
 
-  void createMultipleComponents(ImageData &data) {
-    createSquarePattern(data);
+  static void CreateMultipleComponents(ImageData &data) {
+    CreateSquarePattern(data);
 
     int small_size = 3;
 
     for (int row = 0; row < small_size; ++row) {
       for (int col = 0; col < small_size; ++col) {
-        int idx = row * data.width + col;
+        int idx = (row * data.width) + col;
         data.pixels[idx] = 255;
       }
     }
 
     for (int row = 0; row < small_size; ++row) {
       for (int col = data.width - small_size; col < data.width; ++col) {
-        int idx = row * data.width + col;
+        int idx = (row * data.width) + col;
         data.pixels[idx] = 255;
       }
     }
 
     for (int row = data.height - small_size; row < data.height; ++row) {
       for (int col = 0; col < small_size; ++col) {
-        int idx = row * data.width + col;
+        int idx = (row * data.width) + col;
         data.pixels[idx] = 255;
       }
     }
   }
 
-  void createLinePattern(ImageData &data) {
+  static void CreateLinePattern(ImageData &data) {
     int line_y = data.height / 2;
-    for (int x = data.width / 4; x < 3 * data.width / 4; ++x) {
-      int idx = line_y * data.width + x;
+    for (int coord_x = data.width / 4; coord_x < 3 * data.width / 4; ++coord_x) {
+      int idx = (line_y * data.width) + coord_x;
       data.pixels[idx] = 255;
     }
 
     int line_x = data.width / 2;
-    for (int y = data.height / 4; y < 3 * data.height / 4; ++y) {
-      int idx = y * data.width + line_x;
+    for (int coord_y = data.height / 4; coord_y < 3 * data.height / 4; ++coord_y) {
+      int idx = (coord_y * data.width) + line_x;
       data.pixels[idx] = 255;
     }
   }
 
-  void createPatternWithHole(ImageData &data) {
+  static void CreatePatternWithHole(ImageData &data) {
     int center_x = data.width / 2;
     int center_y = data.height / 2;
     int outer_size = 10;
     int inner_size = 4;
 
-    for (int dy = -outer_size / 2; dy <= outer_size / 2; ++dy) {
-      for (int dx = -outer_size / 2; dx <= outer_size / 2; ++dx) {
-        if (abs(dx) <= inner_size / 2 && abs(dy) <= inner_size / 2) {
+    for (int delta_y = -outer_size / 2; delta_y <= outer_size / 2; ++delta_y) {
+      for (int delta_x = -outer_size / 2; delta_x <= outer_size / 2; ++delta_x) {
+        if (std::abs(delta_x) <= inner_size / 2 && std::abs(delta_y) <= inner_size / 2) {
           continue;
         }
-        int px = center_x + dx;
-        int py = center_y + dy;
+        int px = center_x + delta_x;
+        int py = center_y + delta_y;
         if (px >= 0 && px < data.width && py >= 0 && py < data.height) {
-          int idx = py * data.width + px;
+          int idx = (py * data.width) + px;
           data.pixels[idx] = 255;
         }
       }
     }
   }
 
-  void createLShapePattern(ImageData &data) {
+  static void CreateLShapePattern(ImageData &data) {
     int center_x = data.width / 2;
     int center_y = data.height / 2;
     int size = 8;
 
-    for (int dy = -size / 2; dy <= size / 2; ++dy) {
+    for (int delta_y = -size / 2; delta_y <= size / 2; ++delta_y) {
       int x = center_x - size / 2;
       int px = x;
-      int py = center_y + dy;
+      int py = center_y + delta_y;
       if (px >= 0 && px < data.width && py >= 0 && py < data.height) {
-        int idx = py * data.width + px;
+        int idx = (py * data.width) + px;
         data.pixels[idx] = 255;
       }
     }
 
-    for (int dx = -size / 2; dx <= size / 2; ++dx) {
-      int y_pos = center_y + size / 2;
-      int px = center_x + dx;
+    for (int delta_x = -size / 2; delta_x <= size / 2; ++delta_x) {
+      int y_pos = center_y + (size / 2);
+      int px = center_x + delta_x;
       int py = y_pos;
       if (px >= 0 && px < data.width && py >= 0 && py < data.height) {
-        int idx = py * data.width + px;
+        int idx = (py * data.width) + px;
         data.pixels[idx] = 255;
       }
     }

@@ -7,18 +7,17 @@
 #include <cstdint>
 #include <queue>
 #include <utility>
+#include <vector>
 
-using namespace kotelnikova_a_convex_hull_for_bin_img;
+namespace kotelnikova_a_convex_hull_for_bin_img {
 
 namespace {
 
 int Cross(const Point &o, const Point &a, const Point &b) {
-  return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  return ((a.x - o.x) * (b.y - o.y)) - ((a.y - o.y) * (b.x - o.x));
 }
 
 }  // namespace
-
-namespace kotelnikova_a_convex_hull_for_bin_img {
 
 KotelnikovaAConvexHullForBinImgMPI::KotelnikovaAConvexHullForBinImgMPI(const InType &in) : local_data_(in) {
   SetTypeOfTask(GetStaticTypeOfTask());
@@ -67,7 +66,7 @@ void KotelnikovaAConvexHullForBinImgMPI::BinarizeImageMpi() {
   int pixels_per_proc = total_pixels / size_;
   int remainder = total_pixels % size_;
 
-  int start_idx = rank_ * pixels_per_proc + std::min(rank_, remainder);
+  int start_idx = (rank_ * pixels_per_proc) + std::min(rank_, remainder);
   int end_idx = start_idx + pixels_per_proc + (rank_ < remainder ? 1 : 0);
 
   for (int i = start_idx; i < end_idx; ++i) {
@@ -82,7 +81,7 @@ void KotelnikovaAConvexHullForBinImgMPI::BinarizeImageMpi() {
   std::vector<int> displs(size_);
 
   for (int i = 0; i < size_; ++i) {
-    int proc_start = i * pixels_per_proc + std::min(i, remainder);
+    int proc_start = (i * pixels_per_proc) + std::min(i, remainder);
     int proc_end = proc_start + pixels_per_proc + (i < remainder ? 1 : 0);
     recv_counts[i] = proc_end - proc_start;
     displs[i] = proc_start;
@@ -99,7 +98,7 @@ void KotelnikovaAConvexHullForBinImgMPI::FindConnectedComponentsMpi() {
   int rows_per_proc = height / size_;
   int remainder = height % size_;
 
-  int start_row = rank_ * rows_per_proc + std::min(rank_, remainder);
+  int start_row = (rank_ * rows_per_proc) + std::min(rank_, remainder);
   int end_row = start_row + rows_per_proc + (rank_ < remainder ? 1 : 0);
 
   std::vector<bool> visited_local(static_cast<size_t>(width) * (end_row - start_row), false);
@@ -109,8 +108,8 @@ void KotelnikovaAConvexHullForBinImgMPI::FindConnectedComponentsMpi() {
 
   for (int row_y = start_row; row_y < end_row; ++row_y) {
     for (int col_x = 0; col_x < width; ++col_x) {
-      int local_idx = (row_y - start_row) * width + col_x;
-      int global_idx = row_y * width + col_x;
+      int local_idx = ((row_y - start_row) * width) + col_x;
+      int global_idx = (row_y * width) + col_x;
 
       if (local_data_.pixels[global_idx] == 255 && !visited_local[local_idx]) {
         std::vector<Point> component;
@@ -128,8 +127,8 @@ void KotelnikovaAConvexHullForBinImgMPI::FindConnectedComponentsMpi() {
             int ny = p.y + dir.second;
 
             if (nx >= 0 && nx < width && ny >= start_row && ny < end_row) {
-              int nlocal_idx = (ny - start_row) * width + nx;
-              int nglobal_idx = ny * width + nx;
+              int nlocal_idx = ((ny - start_row) * width) + nx;
+              int nglobal_idx = (ny * width) + nx;
 
               if (local_data_.pixels[nglobal_idx] == 255 && !visited_local[nlocal_idx]) {
                 visited_local[nlocal_idx] = true;
@@ -203,8 +202,8 @@ std::vector<Point> KotelnikovaAConvexHullForBinImgMPI::GrahamScan(const std::vec
   std::sort(pts.begin() + 1, pts.end(), [&pivot](const Point &a, const Point &b) {
     int orient = Cross(pivot, a, b);
     if (orient == 0) {
-      return (a.x - pivot.x) * (a.x - pivot.x) + (a.y - pivot.y) * (a.y - pivot.y) <
-             (b.x - pivot.x) * (b.x - pivot.x) + (b.y - pivot.y) * (b.y - pivot.y);
+      return ((a.x - pivot.x) * (a.x - pivot.x)) + ((a.y - pivot.y) * (a.y - pivot.y)) <
+             ((b.x - pivot.x) * (b.x - pivot.x)) + ((b.y - pivot.y) * (b.y - pivot.y));
     }
     return orient > 0;
   });

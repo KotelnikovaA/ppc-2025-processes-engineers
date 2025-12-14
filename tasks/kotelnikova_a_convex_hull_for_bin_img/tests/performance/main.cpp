@@ -1,7 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
-#include <numbers>
+#include <cstddef>
 #include <set>
 
 #include "kotelnikova_a_convex_hull_for_bin_img/common/include/common.hpp"
@@ -50,7 +51,7 @@ class KotelnikovaARunPerfTestProcesses3 : public ppc::util::BaseRunPerfTests<InT
           const Point &p1 = hull[(i + 1) % hull.size()];
           const Point &p2 = hull[(i + 2) % hull.size()];
 
-          int cross = (p1.x - p0.x) * (p2.y - p1.y) - (p1.y - p0.y) * (p2.x - p1.x);
+          int cross = ((p1.x - p0.x) * (p2.y - p1.y)) - ((p1.y - p0.y) * (p2.x - p1.x));
 
           if (cross > 0) {
             all_negative = false;
@@ -80,28 +81,28 @@ class KotelnikovaARunPerfTestProcesses3 : public ppc::util::BaseRunPerfTests<InT
 
     data.width = base_size;
     data.height = base_size;
-    data.pixels.resize(static_cast<size_t>(data.width) * data.height, 0);
+    data.pixels.resize(static_cast<size_t>(data.width) * static_cast<size_t>(data.height), 0);
 
-    createHeavyTestPattern(data);
+    CreateHeavyTestPattern(data);
 
     return data;
   }
 
  private:
-  void createHeavyTestPattern(ImageData &data) {
-    std::fill(data.pixels.begin(), data.pixels.end(), 0);
+  static void CreateHeavyTestPattern(ImageData &data) {
+    std::ranges::fill(data.pixels, 0);
 
     int center_x = data.width / 2;
     int center_y = data.height / 2;
     int big_radius = std::min(data.width, data.height) / 3;
 
-    for (int y = -big_radius; y <= big_radius; ++y) {
-      for (int x = -big_radius; x <= big_radius; ++x) {
-        if (x * x + y * y <= big_radius * big_radius) {
-          int px = center_x + x;
-          int py = center_y + y;
+    for (int coord_y = -big_radius; coord_y <= big_radius; ++coord_y) {
+      for (int coord_x = -big_radius; coord_x <= big_radius; ++coord_x) {
+        if ((coord_x * coord_x) + (coord_y * coord_y) <= big_radius * big_radius) {
+          int px = center_x + coord_x;
+          int py = center_y + coord_y;
           if (px >= 0 && px < data.width && py >= 0 && py < data.height) {
-            size_t idx = static_cast<size_t>(py) * data.width + px;
+            size_t idx = static_cast<size_t>(py) * static_cast<size_t>(data.width) + static_cast<size_t>(px);
             data.pixels[idx] = 255;
           }
         }
@@ -111,18 +112,18 @@ class KotelnikovaARunPerfTestProcesses3 : public ppc::util::BaseRunPerfTests<InT
     int small_radius = data.width / 20;
     int circle_count = 16;
 
-    for (int i = 0; i < circle_count; ++i) {
-      double angle = 2.0 * M_PI * i / circle_count;
-      int circ_x = center_x + static_cast<int>(big_radius * 1.7 * cos(angle));
-      int circ_y = center_y + static_cast<int>(big_radius * 1.7 * sin(angle));
+    for (int index = 0; index < circle_count; ++index) {
+      double angle = 2.0 * M_PI * index / circle_count;
+      int circ_x = center_x + static_cast<int>(big_radius * 1.7 * std::cos(angle));
+      int circ_y = center_y + static_cast<int>(big_radius * 1.7 * std::sin(angle));
 
-      for (int y = -small_radius; y <= small_radius; ++y) {
-        for (int x = -small_radius; x <= small_radius; ++x) {
-          if (x * x + y * y <= small_radius * small_radius) {
-            int px = circ_x + x;
-            int py = circ_y + y;
+      for (int coord_y = -small_radius; coord_y <= small_radius; ++coord_y) {
+        for (int coord_x = -small_radius; coord_x <= small_radius; ++coord_x) {
+          if ((coord_x * coord_x) + (coord_y * coord_y) <= small_radius * small_radius) {
+            int px = circ_x + coord_x;
+            int py = circ_y + coord_y;
             if (px >= 0 && px < data.width && py >= 0 && py < data.height) {
-              size_t idx = static_cast<size_t>(py) * data.width + px;
+              size_t idx = static_cast<size_t>(py) * static_cast<size_t>(data.width) + static_cast<size_t>(px);
               data.pixels[idx] = 255;
             }
           }
@@ -134,29 +135,30 @@ class KotelnikovaARunPerfTestProcesses3 : public ppc::util::BaseRunPerfTests<InT
     int cell_width = data.width / grid_cells;
     int cell_height = data.height / grid_cells;
 
-    for (int i = 1; i < grid_cells; ++i) {
-      int line_y = i * cell_height;
+    for (int index = 1; index < grid_cells; ++index) {
+      int line_y = index * cell_height;
       int line_thickness = 2;
 
-      for (int y = line_y - line_thickness; y <= line_y + line_thickness; ++y) {
-        if (y >= 0 && y < data.height) {
-          for (int x = 0; x < data.width; ++x) {
-            size_t idx = static_cast<size_t>(y) * data.width + x;
+      for (int coord_y = line_y - line_thickness; coord_y <= line_y + line_thickness; ++coord_y) {
+        if (coord_y >= 0 && coord_y < data.height) {
+          for (int coord_x = 0; coord_x < data.width; ++coord_x) {
+            size_t idx = static_cast<size_t>(coord_y) * static_cast<size_t>(data.width) + static_cast<size_t>(coord_x);
             data.pixels[idx] = 255;
           }
         }
       }
     }
 
-    for (int i = 1; i < grid_cells; ++i) {
-      int line_x = i * cell_width;
+    for (int index = 1; index < grid_cells; ++index) {
+      int line_x = index * cell_width;
       int line_thickness = 2;
 
-      for (int x = line_x - line_thickness; x <= line_x + line_thickness; ++x) {
-        if (x >= 0 && x < data.width) {
-          for (int y = 0; y < data.height; ++y) {
-            if (y % 4 < 2) {
-              size_t idx = static_cast<size_t>(y) * data.width + x;
+      for (int coord_x = line_x - line_thickness; coord_x <= line_x + line_thickness; ++coord_x) {
+        if (coord_x >= 0 && coord_x < data.width) {
+          for (int coord_y = 0; coord_y < data.height; ++coord_y) {
+            if (coord_y % 4 < 2) {
+              size_t idx =
+                  static_cast<size_t>(coord_y) * static_cast<size_t>(data.width) + static_cast<size_t>(coord_x);
               data.pixels[idx] = 255;
             }
           }
@@ -165,65 +167,65 @@ class KotelnikovaARunPerfTestProcesses3 : public ppc::util::BaseRunPerfTests<InT
     }
 
     int rect_count = 8;
-    for (int i = 0; i < rect_count; ++i) {
+    for (int index = 0; index < rect_count; ++index) {
       int rect_width = data.width / (rect_count / 2 + 2);
       int rect_height = data.height / (rect_count / 2 + 2);
 
-      int x1 = (i * 2 * data.width) / rect_count;
-      int y1 = (i * 2 * data.height) / rect_count;
-      int x2 = x1 + rect_width * (i % 2 + 1);
-      int y2 = y1 + rect_height * (i % 3 + 1);
+      int x1 = (index * 2 * data.width) / rect_count;
+      int y1 = (index * 2 * data.height) / rect_count;
+      int x2 = x1 + (rect_width * (index % 2 + 1));
+      int y2 = y1 + (rect_height * (index % 3 + 1));
 
       x1 = std::max(0, x1);
       y1 = std::max(0, y1);
       x2 = std::min(data.width - 1, x2);
       y2 = std::min(data.height - 1, y2);
 
-      for (int y = y1; y <= y2; ++y) {
-        for (int x = x1; x <= x2; ++x) {
-          size_t idx = static_cast<size_t>(y) * data.width + x;
+      for (int coord_y = y1; coord_y <= y2; ++coord_y) {
+        for (int coord_x = x1; coord_x <= x2; ++coord_x) {
+          size_t idx = static_cast<size_t>(coord_y) * static_cast<size_t>(data.width) + static_cast<size_t>(coord_x);
           data.pixels[idx] = 255;
         }
       }
     }
 
     int diagonal_count = 15;
-    for (int i = 0; i < diagonal_count; ++i) {
-      int start_x = (i * data.width) / diagonal_count;
+    for (int index = 0; index < diagonal_count; ++index) {
+      int start_x = (index * data.width) / diagonal_count;
       int start_y = 0;
       int end_x = data.width;
-      int end_y = (i * data.height) / diagonal_count;
+      int end_y = (index * data.height) / diagonal_count;
 
-      drawThickLine(data, start_x, start_y, end_x, end_y, 3);
+      DrawThickLine(data, start_x, start_y, end_x, end_y, 3);
     }
 
-    for (int i = 0; i < diagonal_count; ++i) {
+    for (int index = 0; index < diagonal_count; ++index) {
       int start_x = 0;
-      int start_y = (i * data.height) / diagonal_count;
+      int start_y = (index * data.height) / diagonal_count;
       int end_x = data.width;
-      int end_y = (i * data.height) / diagonal_count;
+      int end_y = (index * data.height) / diagonal_count;
 
-      drawThickLine(data, start_x, start_y, end_x, end_y, 3);
+      DrawThickLine(data, start_x, start_y, end_x, end_y, 3);
     }
   }
 
-  void drawThickLine(ImageData &data, int x1, int y1, int x2, int y2, int thickness) {
-    for (int t = -thickness / 2; t <= thickness / 2; ++t) {
-      drawLine(data, x1, y1 + t, x2, y2 + t);
-      drawLine(data, x1 + t, y1, x2 + t, y2);
+  static void DrawThickLine(ImageData &data, int x1, int y1, int x2, int y2, int thickness) {
+    for (int thickness_offset = -thickness / 2; thickness_offset <= thickness / 2; ++thickness_offset) {
+      DrawLine(data, x1, y1 + thickness_offset, x2, y2 + thickness_offset);
+      DrawLine(data, x1 + thickness_offset, y1, x2 + thickness_offset, y2);
     }
   }
 
-  void drawLine(ImageData &data, int x1, int y1, int x2, int y2) {
-    int dx = abs(x2 - x1);
-    int dy = abs(y2 - y1);
+  static void DrawLine(ImageData &data, int x1, int y1, int x2, int y2) {
+    int dx = std::abs(x2 - x1);
+    int dy = std::abs(y2 - y1);
     int sx = (x1 < x2) ? 1 : -1;
     int sy = (y1 < y2) ? 1 : -1;
     int err = dx - dy;
 
     while (true) {
       if (x1 >= 0 && x1 < data.width && y1 >= 0 && y1 < data.height) {
-        size_t idx = static_cast<size_t>(y1) * data.width + x1;
+        size_t idx = static_cast<size_t>(y1) * static_cast<size_t>(data.width) + static_cast<size_t>(x1);
         data.pixels[idx] = 255;
       }
 

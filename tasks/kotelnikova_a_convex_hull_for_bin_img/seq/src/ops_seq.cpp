@@ -6,18 +6,17 @@
 #include <cstdint>
 #include <queue>
 #include <utility>
+#include <vector>
 
-using namespace kotelnikova_a_convex_hull_for_bin_img;
+namespace kotelnikova_a_convex_hull_for_bin_img {
 
 namespace {
 
 int Cross(const Point &o, const Point &a, const Point &b) {
-  return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  return ((a.x - o.x) * (b.y - o.y)) - ((a.y - o.y) * (b.x - o.x));
 }
 
 }  // namespace
-
-namespace kotelnikova_a_convex_hull_for_bin_img {
 
 KotelnikovaAConvexHullForBinImgSEQ::KotelnikovaAConvexHullForBinImgSEQ(const InType &in) : processed_data_(in) {
   SetTypeOfTask(GetStaticTypeOfTask());
@@ -72,7 +71,7 @@ void KotelnikovaAConvexHullForBinImgSEQ::FindConnectedComponents() {
 
   for (int row_y = 0; row_y < height; ++row_y) {
     for (int col_x = 0; col_x < width; ++col_x) {
-      int idx = row_y * width + col_x;
+      int idx = (row_y * width) + col_x;
       if (processed_data_.pixels[static_cast<size_t>(idx)] == 255 && !visited[static_cast<size_t>(idx)]) {
         std::vector<Point> component;
         std::queue<Point> q;
@@ -89,7 +88,7 @@ void KotelnikovaAConvexHullForBinImgSEQ::FindConnectedComponents() {
             int ny = p.y + dir.second;
 
             if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-              int nidx = ny * width + nx;
+              int nidx = (ny * width) + nx;
               if (processed_data_.pixels[static_cast<size_t>(nidx)] == 255 && !visited[static_cast<size_t>(nidx)]) {
                 visited[static_cast<size_t>(nidx)] = true;
                 q.emplace(nx, ny);
@@ -126,8 +125,8 @@ std::vector<Point> KotelnikovaAConvexHullForBinImgSEQ::GrahamScan(const std::vec
   std::sort(pts.begin() + 1, pts.end(), [&pivot](const Point &a, const Point &b) {
     int orient = Cross(pivot, a, b);
     if (orient == 0) {
-      return (a.x - pivot.x) * (a.x - pivot.x) + (a.y - pivot.y) * (a.y - pivot.y) <
-             (b.x - pivot.x) * (b.x - pivot.x) + (b.y - pivot.y) * (b.y - pivot.y);
+      return ((a.x - pivot.x) * (a.x - pivot.x)) + ((a.y - pivot.y) * (a.y - pivot.y)) <
+             ((b.x - pivot.x) * (b.x - pivot.x)) + ((b.y - pivot.y) * (b.y - pivot.y));
     }
     return orient > 0;
   });
