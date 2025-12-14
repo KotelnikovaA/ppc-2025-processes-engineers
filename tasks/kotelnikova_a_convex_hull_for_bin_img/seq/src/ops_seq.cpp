@@ -2,39 +2,46 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <queue>
-#include <set>
+#include <utility>
+
+using namespace kotelnikova_a_convex_hull_for_bin_img;
+
+namespace {
+
+int Cross(const Point &o, const Point &a, const Point &b) {
+  return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+}
+
+}  // namespace
 
 namespace kotelnikova_a_convex_hull_for_bin_img {
 
-static int cross(const Point &O, const Point &A, const Point &B) {
-  return (A.x - O.x) * (B.y - O.y) - (A.y - O.y) * (B.x - O.x);
-}
-
-KotelnikovaAConvexHullForBinImgSEQ::KotelnikovaAConvexHullForBinImgSEQ(const InType &in) {
+KotelnikovaAConvexHullForBinImgSEQ::KotelnikovaAConvexHullForBinImgSEQ(const InType &in) : processed_data_(in) {
   SetTypeOfTask(GetStaticTypeOfTask());
   GetInput() = in;
-  processed_data_ = in;
 }
 
 bool KotelnikovaAConvexHullForBinImgSEQ::ValidationImpl() {
   return GetInput().width > 0 && GetInput().height > 0 && !GetInput().pixels.empty() &&
-         GetInput().pixels.size() == static_cast<size_t>(GetInput().width * GetInput().height);
+         GetInput().pixels.size() == static_cast<size_t>(GetInput().width) * static_cast<size_t>(GetInput().height);
 }
 
 bool KotelnikovaAConvexHullForBinImgSEQ::PreProcessingImpl() {
-  binarizeImage();
+  BinarizeImage();
   return true;
 }
 
 bool KotelnikovaAConvexHullForBinImgSEQ::RunImpl() {
-  findConnectedComponents();
+  FindConnectedComponents();
   processed_data_.convex_hulls.clear();
 
   for (const auto &component : processed_data_.components) {
     if (component.size() >= 3) {
-      processed_data_.convex_hulls.push_back(grahamScan(component));
-    } else if (component.size() > 0) {
+      processed_data_.convex_hulls.push_back(GrahamScan(component));
+    } else if (!component.empty()) {
       processed_data_.convex_hulls.push_back(component);
     }
   }
@@ -47,14 +54,14 @@ bool KotelnikovaAConvexHullForBinImgSEQ::PostProcessingImpl() {
   return true;
 }
 
-void KotelnikovaAConvexHullForBinImgSEQ::binarizeImage() {
+void KotelnikovaAConvexHullForBinImgSEQ::BinarizeImage() {
   const uint8_t threshold = 128;
   for (auto &pixel : processed_data_.pixels) {
     pixel = (pixel > threshold) ? 255 : 0;
   }
 }
 
-void KotelnikovaAConvexHullForBinImgSEQ::findConnectedComponents() {
+void KotelnikovaAConvexHullForBinImgSEQ::FindConnectedComponents() {
   int width = processed_data_.width;
   int height = processed_data_.height;
   int total_pixels = width * height;
@@ -63,13 +70,13 @@ void KotelnikovaAConvexHullForBinImgSEQ::findConnectedComponents() {
 
   std::vector<std::pair<int, int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
-  for (int y = 0; y < height; ++y) {
-    for (int x = 0; x < width; ++x) {
-      int idx = y * width + x;
+  for (int row_y = 0; row_y < height; ++row_y) {
+    for (int col_x = 0; col_x < width; ++col_x) {
+      int idx = row_y * width + col_x;
       if (processed_data_.pixels[static_cast<size_t>(idx)] == 255 && !visited[static_cast<size_t>(idx)]) {
         std::vector<Point> component;
         std::queue<Point> q;
-        q.push(Point(x, y));
+        q.emplace(col_x, row_y);
         visited[static_cast<size_t>(idx)] = true;
 
         while (!q.empty()) {
@@ -85,7 +92,7 @@ void KotelnikovaAConvexHullForBinImgSEQ::findConnectedComponents() {
               int nidx = ny * width + nx;
               if (processed_data_.pixels[static_cast<size_t>(nidx)] == 255 && !visited[static_cast<size_t>(nidx)]) {
                 visited[static_cast<size_t>(nidx)] = true;
-                q.push(Point(nx, ny));
+                q.emplace(nx, ny);
               }
             }
           }
@@ -99,7 +106,7 @@ void KotelnikovaAConvexHullForBinImgSEQ::findConnectedComponents() {
   }
 }
 
-std::vector<Point> KotelnikovaAConvexHullForBinImgSEQ::grahamScan(const std::vector<Point> &points) {
+std::vector<Point> KotelnikovaAConvexHullForBinImgSEQ::GrahamScan(const std::vector<Point> &points) {
   if (points.size() <= 3) {
     return points;
   }
@@ -117,7 +124,7 @@ std::vector<Point> KotelnikovaAConvexHullForBinImgSEQ::grahamScan(const std::vec
 
   Point pivot = pts[0];
   std::sort(pts.begin() + 1, pts.end(), [&pivot](const Point &a, const Point &b) {
-    int orient = cross(pivot, a, b);
+    int orient = Cross(pivot, a, b);
     if (orient == 0) {
       return (a.x - pivot.x) * (a.x - pivot.x) + (a.y - pivot.y) * (a.y - pivot.y) <
              (b.x - pivot.x) * (b.x - pivot.x) + (b.y - pivot.y) * (b.y - pivot.y);
@@ -127,7 +134,7 @@ std::vector<Point> KotelnikovaAConvexHullForBinImgSEQ::grahamScan(const std::vec
 
   std::vector<Point> hull;
   for (size_t i = 0; i < n; ++i) {
-    while (hull.size() >= 2 && cross(hull[hull.size() - 2], hull.back(), pts[i]) <= 0) {
+    while (hull.size() >= 2 && Cross(hull[hull.size() - 2], hull.back(), pts[i]) <= 0) {
       hull.pop_back();
     }
     hull.push_back(pts[i]);

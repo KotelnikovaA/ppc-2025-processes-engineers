@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "kotelnikova_a_convex_hull_for_bin_img/common/include/common.hpp"
 #include "task/include/task.hpp"
 
@@ -18,9 +20,9 @@ class KotelnikovaAConvexHullForBinImgSEQ : public BaseTask {
   bool RunImpl() override;
   bool PostProcessingImpl() override;
 
-  void findConnectedComponents();
-  std::vector<Point> grahamScan(const std::vector<Point> &points);
-  void binarizeImage();
+  void FindConnectedComponents();
+  std::vector<Point> GrahamScan(const std::vector<Point> &points);
+  void BinarizeImage();
 
   ImageData processed_data_;
 };

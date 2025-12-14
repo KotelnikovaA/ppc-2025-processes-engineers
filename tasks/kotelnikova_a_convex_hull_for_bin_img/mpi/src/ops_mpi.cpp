@@ -3,42 +3,49 @@
 #include <mpi.h>
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <queue>
-#include <set>
+#include <utility>
+
+using namespace kotelnikova_a_convex_hull_for_bin_img;
+
+namespace {
+
+int Cross(const Point &o, const Point &a, const Point &b) {
+  return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+}
+
+}  // namespace
 
 namespace kotelnikova_a_convex_hull_for_bin_img {
 
-static int cross(const Point &O, const Point &A, const Point &B) {
-  return (A.x - O.x) * (B.y - O.y) - (A.y - O.y) * (B.x - O.x);
-}
-
-KotelnikovaAConvexHullForBinImgMPI::KotelnikovaAConvexHullForBinImgMPI(const InType &in) {
+KotelnikovaAConvexHullForBinImgMPI::KotelnikovaAConvexHullForBinImgMPI(const InType &in) : local_data_(in) {
   SetTypeOfTask(GetStaticTypeOfTask());
   GetInput() = in;
-  local_data_ = in;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
   MPI_Comm_size(MPI_COMM_WORLD, &size_);
 }
 
 bool KotelnikovaAConvexHullForBinImgMPI::ValidationImpl() {
   return GetInput().width > 0 && GetInput().height > 0 && !GetInput().pixels.empty() &&
-         GetInput().pixels.size() == static_cast<size_t>(GetInput().width * GetInput().height);
+         GetInput().pixels.size() == static_cast<size_t>(GetInput().width) * static_cast<size_t>(GetInput().height);
 }
 
 bool KotelnikovaAConvexHullForBinImgMPI::PreProcessingImpl() {
-  binarizeImageMPI();
+  BinarizeImageMpi();
   return true;
 }
 
 bool KotelnikovaAConvexHullForBinImgMPI::RunImpl() {
-  findConnectedComponentsMPI();
+  FindConnectedComponentsMpi();
 
   if (rank_ == 0) {
     local_data_.convex_hulls.clear();
     for (const auto &component : local_data_.components) {
       if (component.size() >= 3) {
-        local_data_.convex_hulls.push_back(grahamScan(component));
-      } else if (component.size() > 0) {
+        local_data_.convex_hulls.push_back(GrahamScan(component));
+      } else if (!component.empty()) {
         local_data_.convex_hulls.push_back(component);
       }
     }
@@ -53,7 +60,7 @@ bool KotelnikovaAConvexHullForBinImgMPI::PostProcessingImpl() {
   return true;
 }
 
-void KotelnikovaAConvexHullForBinImgMPI::binarizeImageMPI() {
+void KotelnikovaAConvexHullForBinImgMPI::BinarizeImageMpi() {
   const uint8_t threshold = 128;
   int total_pixels = local_data_.width * local_data_.height;
 
@@ -85,7 +92,7 @@ void KotelnikovaAConvexHullForBinImgMPI::binarizeImageMPI() {
                  MPI_UINT8_T, MPI_COMM_WORLD);
 }
 
-void KotelnikovaAConvexHullForBinImgMPI::findConnectedComponentsMPI() {
+void KotelnikovaAConvexHullForBinImgMPI::FindConnectedComponentsMpi() {
   int width = local_data_.width;
   int height = local_data_.height;
 
@@ -95,20 +102,20 @@ void KotelnikovaAConvexHullForBinImgMPI::findConnectedComponentsMPI() {
   int start_row = rank_ * rows_per_proc + std::min(rank_, remainder);
   int end_row = start_row + rows_per_proc + (rank_ < remainder ? 1 : 0);
 
-  std::vector<bool> visited_local(width * (end_row - start_row), false);
+  std::vector<bool> visited_local(static_cast<size_t>(width) * (end_row - start_row), false);
   std::vector<std::vector<Point>> local_components;
 
   std::vector<std::pair<int, int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
-  for (int y = start_row; y < end_row; ++y) {
-    for (int x = 0; x < width; ++x) {
-      int local_idx = (y - start_row) * width + x;
-      int global_idx = y * width + x;
+  for (int row_y = start_row; row_y < end_row; ++row_y) {
+    for (int col_x = 0; col_x < width; ++col_x) {
+      int local_idx = (row_y - start_row) * width + col_x;
+      int global_idx = row_y * width + col_x;
 
       if (local_data_.pixels[global_idx] == 255 && !visited_local[local_idx]) {
         std::vector<Point> component;
         std::queue<Point> q;
-        q.push(Point(x, y));
+        q.emplace(col_x, row_y);
         visited_local[local_idx] = true;
 
         while (!q.empty()) {
@@ -126,7 +133,7 @@ void KotelnikovaAConvexHullForBinImgMPI::findConnectedComponentsMPI() {
 
               if (local_data_.pixels[nglobal_idx] == 255 && !visited_local[nlocal_idx]) {
                 visited_local[nlocal_idx] = true;
-                q.push(Point(nx, ny));
+                q.emplace(nx, ny);
               }
             }
           }
@@ -143,11 +150,11 @@ void KotelnikovaAConvexHullForBinImgMPI::findConnectedComponentsMPI() {
     local_data_.components = local_components;
 
     for (int i = 1; i < size_; ++i) {
-      int comp_count;
+      int comp_count = 0;
       MPI_Recv(&comp_count, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
       for (int j = 0; j < comp_count; ++j) {
-        int comp_size;
+        int comp_size = 0;
         MPI_Recv(&comp_size, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
         std::vector<Point> component(comp_size);
@@ -165,7 +172,7 @@ void KotelnikovaAConvexHullForBinImgMPI::findConnectedComponentsMPI() {
       MPI_Send(&comp_size, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
 
       std::vector<int> point_data;
-      point_data.reserve(comp_size * 2);
+      point_data.reserve(static_cast<size_t>(comp_size) * 2);
       for (const auto &point : component) {
         point_data.push_back(point.x);
         point_data.push_back(point.y);
@@ -176,7 +183,7 @@ void KotelnikovaAConvexHullForBinImgMPI::findConnectedComponentsMPI() {
   }
 }
 
-std::vector<Point> KotelnikovaAConvexHullForBinImgMPI::grahamScan(const std::vector<Point> &points) {
+std::vector<Point> KotelnikovaAConvexHullForBinImgMPI::GrahamScan(const std::vector<Point> &points) {
   if (points.size() <= 3) {
     return points;
   }
@@ -194,7 +201,7 @@ std::vector<Point> KotelnikovaAConvexHullForBinImgMPI::grahamScan(const std::vec
 
   Point pivot = pts[0];
   std::sort(pts.begin() + 1, pts.end(), [&pivot](const Point &a, const Point &b) {
-    int orient = cross(pivot, a, b);
+    int orient = Cross(pivot, a, b);
     if (orient == 0) {
       return (a.x - pivot.x) * (a.x - pivot.x) + (a.y - pivot.y) * (a.y - pivot.y) <
              (b.x - pivot.x) * (b.x - pivot.x) + (b.y - pivot.y) * (b.y - pivot.y);
@@ -204,7 +211,7 @@ std::vector<Point> KotelnikovaAConvexHullForBinImgMPI::grahamScan(const std::vec
 
   std::vector<Point> hull;
   for (int i = 0; i < n; ++i) {
-    while (hull.size() >= 2 && cross(hull[hull.size() - 2], hull.back(), pts[i]) <= 0) {
+    while (hull.size() >= 2 && Cross(hull[hull.size() - 2], hull.back(), pts[i]) <= 0) {
       hull.pop_back();
     }
     hull.push_back(pts[i]);

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "kotelnikova_a_convex_hull_for_bin_img/common/include/common.hpp"
 #include "task/include/task.hpp"
 
@@ -18,12 +20,12 @@ class KotelnikovaAConvexHullForBinImgMPI : public BaseTask {
   bool RunImpl() override;
   bool PostProcessingImpl() override;
 
-  void binarizeImageMPI();
-  void findConnectedComponentsMPI();
-  std::vector<Point> grahamScan(const std::vector<Point> &points);
+  void BinarizeImageMpi();
+  void FindConnectedComponentsMpi();
+  static std::vector<Point> GrahamScan(const std::vector<Point> &points);
 
   ImageData local_data_;
-  int rank_, size_;
+  int rank_{0}, size_{0};
 };
 
 }  // namespace kotelnikova_a_convex_hull_for_bin_img

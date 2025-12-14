@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -11,7 +12,7 @@ namespace kotelnikova_a_convex_hull_for_bin_img {
 
 struct Point {
   int x, y;
-  Point(int x = 0, int y = 0) : x(x), y(y) {}
+  explicit Point(int x = 0, int y = 0) : x(x), y(y) {}
   bool operator==(const Point &other) const {
     return x == other.x && y == other.y;
   }
@@ -24,8 +25,8 @@ struct Point {
 };
 
 struct ImageData {
-  int width;
-  int height;
+  int width{0};
+  int height{0};
   std::vector<uint8_t> pixels;
   std::vector<std::vector<Point>> components;
   std::vector<std::vector<Point>> convex_hulls;
