@@ -45,6 +45,7 @@ bool KotelnikovaAConvexHullForBinImgMPI::RunImpl() {
   }
 
   GetOutput() = local_data_;
+
   return true;
 }
 
@@ -62,11 +63,9 @@ void KotelnikovaAConvexHullForBinImgMPI::binarizeImageMPI() {
   int start_idx = rank_ * pixels_per_proc + std::min(rank_, remainder);
   int end_idx = start_idx + pixels_per_proc + (rank_ < remainder ? 1 : 0);
 
-  int local_count = 0;
   for (int i = start_idx; i < end_idx; ++i) {
     if (local_data_.pixels[i] > threshold) {
       local_data_.pixels[i] = 255;
-      local_count++;
     } else {
       local_data_.pixels[i] = 0;
     }
@@ -101,7 +100,6 @@ void KotelnikovaAConvexHullForBinImgMPI::findConnectedComponentsMPI() {
 
   std::vector<std::pair<int, int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
-  int found_components = 0;
   for (int y = start_row; y < end_row; ++y) {
     for (int x = 0; x < width; ++x) {
       int local_idx = (y - start_row) * width + x;
@@ -136,7 +134,6 @@ void KotelnikovaAConvexHullForBinImgMPI::findConnectedComponentsMPI() {
 
         if (!component.empty()) {
           local_components.push_back(component);
-          found_components++;
         }
       }
     }
