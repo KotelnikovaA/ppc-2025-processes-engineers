@@ -213,7 +213,7 @@ class KotelnikovaAFuncTestsProcesses3 : public ppc::util::BaseRunFuncTests<InTyp
     int size = 8;
 
     for (int delta_y = -size / 2; delta_y <= size / 2; ++delta_y) {
-      int x = center_x - size / 2;
+      int x = center_x - (size / 2);
       int px = x;
       int py = center_y + delta_y;
       if (px >= 0 && px < data.width && py >= 0 && py < data.height) {

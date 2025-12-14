@@ -41,7 +41,9 @@ void ProcessConnectedComponent(int start_x, int start_y, int width, int height, 
   std::vector<Point> component;
   std::queue<Point> q;
   q.emplace(start_x, start_y);
-  visited[static_cast<size_t>(start_y * width + start_x)] = true;
+  size_t start_idx = (static_cast<size_t>(start_y) * static_cast<size_t>(width)) + static_cast<size_t>(start_x);
+  q.emplace(start_x, start_y);
+  visited[start_idx] = true;
 
   while (!q.empty()) {
     Point p = q.front();
