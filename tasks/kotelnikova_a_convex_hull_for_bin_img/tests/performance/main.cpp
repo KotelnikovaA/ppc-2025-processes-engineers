@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <numbers>
 #include <set>
 
 #include "kotelnikova_a_convex_hull_for_bin_img/common/include/common.hpp"
@@ -9,6 +10,10 @@
 #include "util/include/perf_test_util.hpp"
 
 namespace kotelnikova_a_convex_hull_for_bin_img {
+
+#ifndef M_PI
+#  define M_PI 3.14159265358979323846
+#endif
 
 class KotelnikovaARunPerfTestProcesses3 : public ppc::util::BaseRunPerfTests<InType, OutType> {
  protected:
