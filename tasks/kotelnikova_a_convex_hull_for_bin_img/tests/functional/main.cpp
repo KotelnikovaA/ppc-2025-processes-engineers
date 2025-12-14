@@ -109,10 +109,10 @@ class KotelnikovaAFuncTestsProcesses3 : public ppc::util::BaseRunFuncTests<InTyp
     int center_y = data.height / 2;
     int size = 8;
 
-    for (int y = 0; y < size; ++y) {
-      for (int x = 0; x <= y; ++x) {
-        int px = center_x - size / 2 + x;
-        int py = center_y - size / 2 + y;
+    for (int row = 0; row < size; ++row) {
+      for (int col = 0; col <= row; ++col) {
+        int px = center_x - size / 2 + col;
+        int py = center_y - size / 2 + row;
         if (px >= 0 && px < data.width && py >= 0 && py < data.height) {
           int idx = py * data.width + px;
           data.pixels[idx] = 255;
@@ -126,11 +126,11 @@ class KotelnikovaAFuncTestsProcesses3 : public ppc::util::BaseRunFuncTests<InTyp
     int center_y = data.height / 2;
     int radius = 8;
 
-    for (int y = -radius; y <= radius; ++y) {
-      for (int x = -radius; x <= radius; ++x) {
-        if (x * x + y * y <= radius * radius) {
-          int px = center_x + x;
-          int py = center_y + y;
+    for (int dy = -radius; dy <= radius; ++dy) {
+      for (int dx = -radius; dx <= radius; ++dx) {
+        if (dx * dx + dy * dy <= radius * radius) {
+          int px = center_x + dx;
+          int py = center_y + dy;
           if (px >= 0 && px < data.width && py >= 0 && py < data.height) {
             int idx = py * data.width + px;
             data.pixels[idx] = 255;
@@ -145,38 +145,38 @@ class KotelnikovaAFuncTestsProcesses3 : public ppc::util::BaseRunFuncTests<InTyp
 
     int small_size = 3;
 
-    for (int y = 0; y < small_size; ++y) {
-      for (int x = 0; x < small_size; ++x) {
-        int idx = y * data.width + x;
+    for (int row = 0; row < small_size; ++row) {
+      for (int col = 0; col < small_size; ++col) {
+        int idx = row * data.width + col;
         data.pixels[idx] = 255;
       }
     }
 
-    for (int y = 0; y < small_size; ++y) {
-      for (int x = data.width - small_size; x < data.width; ++x) {
-        int idx = y * data.width + x;
+    for (int row = 0; row < small_size; ++row) {
+      for (int col = data.width - small_size; col < data.width; ++col) {
+        int idx = row * data.width + col;
         data.pixels[idx] = 255;
       }
     }
 
-    for (int y = data.height - small_size; y < data.height; ++y) {
-      for (int x = 0; x < small_size; ++x) {
-        int idx = y * data.width + x;
+    for (int row = data.height - small_size; row < data.height; ++row) {
+      for (int col = 0; col < small_size; ++col) {
+        int idx = row * data.width + col;
         data.pixels[idx] = 255;
       }
     }
   }
 
   void createLinePattern(ImageData &data) {
-    int y = data.height / 2;
+    int line_y = data.height / 2;
     for (int x = data.width / 4; x < 3 * data.width / 4; ++x) {
-      int idx = y * data.width + x;
+      int idx = line_y * data.width + x;
       data.pixels[idx] = 255;
     }
 
-    int x = data.width / 2;
+    int line_x = data.width / 2;
     for (int y = data.height / 4; y < 3 * data.height / 4; ++y) {
-      int idx = y * data.width + x;
+      int idx = y * data.width + line_x;
       data.pixels[idx] = 255;
     }
   }
