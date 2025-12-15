@@ -22,6 +22,9 @@ class KotelnikovaAConvexHullForBinImgMPI : public BaseTask {
 
   void BinarizeImageMpi();
   void FindConnectedComponentsMpi();
+  void ProcessConvexHulls();
+  void BroadcastConvexHulls();
+  void BroadcastComponents();
   static std::vector<Point> GrahamScan(const std::vector<Point> &points);
 
   ImageData local_data_;
