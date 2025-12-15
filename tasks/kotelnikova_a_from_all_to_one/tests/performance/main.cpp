@@ -13,6 +13,8 @@
 #include "kotelnikova_a_from_all_to_one/seq/include/ops_seq.hpp"
 #include "util/include/perf_test_util.hpp"
 
+// комментарий для пуша так как код упал так еще и не по моей вине
+
 namespace kotelnikova_a_from_all_to_one {
 
 class KotelnikovaARunPerfTestProcesses2 : public ppc::util::BaseRunPerfTests<InType, OutType> {
