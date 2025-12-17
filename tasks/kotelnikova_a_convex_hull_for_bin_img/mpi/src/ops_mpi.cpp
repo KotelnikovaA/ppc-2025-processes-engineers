@@ -10,6 +10,8 @@
 #include <utility>
 #include <vector>
 
+#include "kotelnikova_a_convex_hull_for_bin_img/common/include/common.hpp"
+
 namespace kotelnikova_a_convex_hull_for_bin_img {
 
 namespace {
@@ -27,12 +29,13 @@ std::vector<Point> ProcessComponent(int start_x, int start_y, int width, int sta
   int local_idx = ((start_y - start_row) * width) + start_x;
   visited_local[static_cast<size_t>(local_idx)] = true;
 
+  const std::vector<std::pair<int, int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+
   while (!q.empty()) {
     Point p = q.front();
     q.pop();
     component.push_back(p);
 
-    const std::vector<std::pair<int, int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
     for (const auto &dir : directions) {
       int nx = p.x + dir.first;
       int ny = p.y + dir.second;
@@ -53,6 +56,24 @@ std::vector<Point> ProcessComponent(int start_x, int start_y, int width, int sta
   return component;
 }
 
+bool ComponentTouchesBorder(const std::vector<Point> &component, int start_row, int end_row) {
+  for (const auto &point : component) {
+    if (point.y == start_row || point.y == end_row - 1) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void ExtractBorderPixels(const std::vector<Point> &component, int start_row, int end_row,
+                         std::vector<Point> &border_pixels) {
+  for (const auto &point : component) {
+    if (point.y == start_row || point.y == end_row - 1) {
+      border_pixels.push_back(point);
+    }
+  }
+}
+
 void ProcessLocalRegion(int start_row, int end_row, int width, const ImageData &local_data,
                         std::vector<std::vector<Point>> &local_components, std::vector<Point> &border_pixels) {
   std::vector<bool> visited_local(static_cast<size_t>(width) * static_cast<size_t>(end_row - start_row), false);
@@ -69,20 +90,8 @@ void ProcessLocalRegion(int start_row, int end_row, int width, const ImageData &
         if (!component.empty()) {
           local_components.push_back(component);
 
-          bool touches_border = false;
-          for (const auto &point : component) {
-            if (point.y == start_row || point.y == end_row - 1) {
-              touches_border = true;
-              break;
-            }
-          }
-
-          if (touches_border) {
-            for (const auto &point : component) {
-              if (point.y == start_row || point.y == end_row - 1) {
-                border_pixels.push_back(point);
-              }
-            }
+          if (ComponentTouchesBorder(component, start_row, end_row)) {
+            ExtractBorderPixels(component, start_row, end_row, border_pixels);
           }
         }
       }
@@ -121,7 +130,7 @@ void ExchangeBorderPixels(int size, std::vector<Point> &border_pixels,
     received_borders[static_cast<size_t>(i)].reserve(static_cast<size_t>(count));
     int start = displs[static_cast<size_t>(i)];
     for (int j = 0; j < count; ++j) {
-      int x = all_data[static_cast<size_t>(start) + static_cast<size_t>(j) * 2];
+      int x = all_data[static_cast<size_t>(start) + (static_cast<size_t>(j) * 2)];
       int y = all_data[static_cast<size_t>(start) + (static_cast<size_t>(j) * 2) + 1];
       received_borders[static_cast<size_t>(i)].emplace_back(x, y);
     }
@@ -130,7 +139,16 @@ void ExchangeBorderPixels(int size, std::vector<Point> &border_pixels,
 
 bool HasBorderPoint(const std::vector<Point> &component, const std::set<std::pair<int, int>> &border_set) {
   for (const auto &point : component) {
-    if (border_set.contains({point.x, point.y})) {
+    if (border_set.find({point.x, point.y}) != border_set.end()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool FindPointInComponent(const std::vector<Point> &component, int x, int y) {
+  for (const auto &p : component) {
+    if (p.x == x && p.y == y) {
       return true;
     }
   }
@@ -160,7 +178,7 @@ void MergeBorderComponents(std::vector<std::vector<Point>> &local_components,
       continue;
     }
     for (const auto &border_point : received_borders[proc]) {
-      if (local_border_set.contains({border_point.x, border_point.y})) {
+      if (local_border_set.find({border_point.x, border_point.y}) != local_border_set.end()) {
         all_border_points.emplace_back(border_point.x, border_point.y);
       }
     }
@@ -173,21 +191,16 @@ void MergeBorderComponents(std::vector<std::vector<Point>> &local_components,
   bool changed = false;
   std::vector<bool> merged(local_components.size(), false);
 
-  for (const auto &[border_x, border_y] : all_border_points) {
+  for (const auto &border_point : all_border_points) {
+    int border_x = border_point.first;
+    int border_y = border_point.second;
+
     for (size_t i = 0; i < local_components.size(); ++i) {
       if (merged[i] || local_components[i].empty()) {
         continue;
       }
 
-      bool found_in_i = false;
-      for (const auto &p : local_components[i]) {
-        if (p.x == border_x && p.y == border_y) {
-          found_in_i = true;
-          break;
-        }
-      }
-
-      if (found_in_i) {
+      if (FindPointInComponent(local_components[i], border_x, border_y)) {
         for (size_t j = 0; j < local_components.size(); ++j) {
           if (i == j || merged[j] || local_components[j].empty()) {
             continue;
@@ -206,14 +219,14 @@ void MergeBorderComponents(std::vector<std::vector<Point>> &local_components,
   }
 
   if (changed) {
-    auto it = std::remove_if(local_components.begin(), local_components.end(),
-                             [](const std::vector<Point> &comp) { return comp.empty(); });
-    local_components.erase(it, local_components.end());
+    local_components.erase(std::remove_if(local_components.begin(), local_components.end(),
+                                          [](const std::vector<Point> &comp) { return comp.empty(); }),
+                           local_components.end());
   }
 }
 
-void GatherAllComponents(int rank, int size, std::vector<std::vector<Point>> &local_components,
-                         std::vector<std::vector<Point>> &all_components) {
+void GatherComponentsFromWorkers(int rank, int size, std::vector<std::vector<Point>> &local_components,
+                                 std::vector<std::vector<Point>> &all_components) {
   if (rank == 0) {
     all_components = local_components;
 
@@ -262,6 +275,24 @@ void GatherAllComponents(int rank, int size, std::vector<std::vector<Point>> &lo
 
 }  // namespace
 
+// Объявления функций, которые теперь есть в заголовочном файле
+void DistributePixelCounts(int size, int total_pixels, std::vector<int> &counts, std::vector<int> &displs) {
+  int base_count = total_pixels / size;
+  int remainder = total_pixels % size;
+
+  for (int i = 0; i < size; ++i) {
+    counts[static_cast<size_t>(i)] = base_count + (i < remainder ? 1 : 0);
+    displs[static_cast<size_t>(i)] =
+        (i == 0) ? 0 : displs[static_cast<size_t>(i - 1)] + counts[static_cast<size_t>(i - 1)];
+  }
+}
+
+void ProcessLocalPixels(std::vector<uint8_t> &local_pixels, uint8_t threshold) {
+  for (auto &pixel : local_pixels) {
+    pixel = (pixel > threshold) ? static_cast<uint8_t>(255) : static_cast<uint8_t>(0);
+  }
+}
+
 KotelnikovaAConvexHullForBinImgMPI::KotelnikovaAConvexHullForBinImgMPI(const InType &in) : local_data_(in) {
   SetTypeOfTask(GetStaticTypeOfTask());
   GetInput() = in;
@@ -305,51 +336,32 @@ void KotelnikovaAConvexHullForBinImgMPI::BinarizeImageMpi() {
   const uint8_t threshold = 128;
   int total_pixels = local_data_.width * local_data_.height;
 
+  std::vector<int> counts(static_cast<size_t>(size_));
+  std::vector<int> displs(static_cast<size_t>(size_));
+  DistributePixelCounts(size_, total_pixels, counts, displs);
+
+  int local_count = counts[static_cast<size_t>(rank_)];
+  std::vector<uint8_t> local_pixels(static_cast<size_t>(local_count));
+
   if (rank_ == 0) {
-    std::vector<int> counts(static_cast<size_t>(size_));
-    std::vector<int> displs(static_cast<size_t>(size_));
-
-    int base_count = total_pixels / size_;
-    int remainder = total_pixels % size_;
-
-    for (int i = 0; i < size_; ++i) {
-      counts[static_cast<size_t>(i)] = base_count + (i < remainder ? 1 : 0);
-      displs[static_cast<size_t>(i)] =
-          (i == 0) ? 0 : displs[static_cast<size_t>(i - 1)] + counts[static_cast<size_t>(i - 1)];
-    }
-
-    std::vector<uint8_t> local_pixels(static_cast<size_t>(counts[0]));
-
-    MPI_Scatterv(local_data_.pixels.data(), counts.data(), displs.data(), MPI_UINT8_T, local_pixels.data(), counts[0],
+    MPI_Scatterv(local_data_.pixels.data(), counts.data(), displs.data(), MPI_UINT8_T, local_pixels.data(), local_count,
                  MPI_UINT8_T, 0, MPI_COMM_WORLD);
-
-    for (auto &pixel : local_pixels) {
-      pixel = (pixel > threshold) ? static_cast<uint8_t>(255) : static_cast<uint8_t>(0);
-    }
-
-    MPI_Gatherv(local_pixels.data(), counts[0], MPI_UINT8_T, local_data_.pixels.data(), counts.data(), displs.data(),
-                MPI_UINT8_T, 0, MPI_COMM_WORLD);
-
-    MPI_Bcast(local_data_.pixels.data(), total_pixels, MPI_UINT8_T, 0, MPI_COMM_WORLD);
   } else {
-    int base_count = total_pixels / size_;
-    int remainder = total_pixels % size_;
-    int local_count = base_count + (rank_ < remainder ? 1 : 0);
-
-    std::vector<uint8_t> local_pixels(static_cast<size_t>(local_count));
-
-    MPI_Scatterv(nullptr, nullptr, nullptr, MPI_UINT8_T, local_pixels.data(), local_count, MPI_UINT8_T, 0,
+    MPI_Scatterv(nullptr, counts.data(), displs.data(), MPI_UINT8_T, local_pixels.data(), local_count, MPI_UINT8_T, 0,
                  MPI_COMM_WORLD);
+  }
 
-    for (auto &pixel : local_pixels) {
-      pixel = (pixel > threshold) ? static_cast<uint8_t>(255) : static_cast<uint8_t>(0);
-    }
+  ProcessLocalPixels(local_pixels, threshold);
 
+  if (rank_ == 0) {
+    MPI_Gatherv(local_pixels.data(), local_count, MPI_UINT8_T, local_data_.pixels.data(), counts.data(), displs.data(),
+                MPI_UINT8_T, 0, MPI_COMM_WORLD);
+  } else {
     MPI_Gatherv(local_pixels.data(), local_count, MPI_UINT8_T, nullptr, nullptr, nullptr, MPI_UINT8_T, 0,
                 MPI_COMM_WORLD);
-
-    MPI_Bcast(local_data_.pixels.data(), total_pixels, MPI_UINT8_T, 0, MPI_COMM_WORLD);
   }
+
+  MPI_Bcast(local_data_.pixels.data(), total_pixels, MPI_BYTE, 0, MPI_COMM_WORLD);
 }
 
 void KotelnikovaAConvexHullForBinImgMPI::FindConnectedComponentsMpi() {
@@ -372,7 +384,7 @@ void KotelnikovaAConvexHullForBinImgMPI::FindConnectedComponentsMpi() {
   MergeBorderComponents(local_components, received_borders, rank_, start_row, end_row);
 
   std::vector<std::vector<Point>> all_components;
-  GatherAllComponents(rank_, size_, local_components, all_components);
+  GatherComponentsFromWorkers(rank_, size_, local_components, all_components);
 
   if (rank_ == 0) {
     local_data_.components = all_components;
