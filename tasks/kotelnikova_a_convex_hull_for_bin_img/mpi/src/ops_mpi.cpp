@@ -5,9 +5,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <queue>
-#include <ranges>
 #include <utility>
 #include <vector>
 
@@ -111,73 +109,6 @@ void SendComponentsToRank0(const std::vector<std::vector<Point>> &local_componen
   }
 }
 
-std::vector<char> SerializeConvexHulls(const std::vector<std::vector<Point>> &convex_hulls) {
-  int hull_count = static_cast<int>(convex_hulls.size());
-
-  size_t total_size = sizeof(int);
-
-  for (const auto &hull : convex_hulls) {
-    total_size += sizeof(int);
-    total_size += hull.size() * sizeof(Point);
-  }
-
-  std::vector<char> buffer(total_size);
-
-  if (total_size == 0) {
-    return buffer;
-  }
-
-  char *ptr = buffer.data();
-
-  *reinterpret_cast<int *>(ptr) = hull_count;
-  ptr += sizeof(hull_count);
-
-  for (const auto &hull : convex_hulls) {
-    int hull_size = static_cast<int>(hull.size());
-    *reinterpret_cast<int *>(ptr) = hull_size;
-    ptr += sizeof(hull_size);
-
-    if (hull_size > 0) {
-      auto point_ptr = reinterpret_cast<Point *>(ptr);
-      std::ranges::copy(hull, point_ptr);
-      ptr += hull_size * sizeof(Point);
-    }
-  }
-
-  return buffer;
-}
-
-std::vector<std::vector<Point>> DeserializeConvexHulls(const char *buffer) {
-  if (buffer == nullptr) {
-    return {};
-  }
-
-  std::vector<std::vector<Point>> convex_hulls;
-
-  int hull_count;
-  std::memcpy(&hull_count, buffer, sizeof(hull_count));
-  const char *ptr = buffer + sizeof(hull_count);
-
-  convex_hulls.reserve(hull_count);
-
-  for (int i = 0; i < hull_count; ++i) {
-    int hull_size;
-    std::memcpy(&hull_size, ptr, sizeof(hull_size));
-    ptr += sizeof(hull_size);
-
-    std::vector<Point> hull(hull_size);
-    if (hull_size > 0) {
-      auto point_ptr = reinterpret_cast<const Point *>(ptr);
-      std::ranges::copy(point_ptr, point_ptr + hull_size, hull.begin());
-      ptr += hull_size * sizeof(Point);
-    }
-
-    convex_hulls.push_back(hull);
-  }
-
-  return convex_hulls;
-}
-
 }  // namespace
 
 KotelnikovaAConvexHullForBinImgMPI::KotelnikovaAConvexHullForBinImgMPI(const InType &in) : local_data_(in) {
@@ -201,13 +132,18 @@ bool KotelnikovaAConvexHullForBinImgMPI::RunImpl() {
   FindConnectedComponentsMpi();
 
   if (rank_ == 0) {
-    ProcessConvexHulls();
+    local_data_.convex_hulls.clear();
+    for (const auto &component : local_data_.components) {
+      if (component.size() >= 3) {
+        local_data_.convex_hulls.push_back(GrahamScan(component));
+      } else if (!component.empty()) {
+        local_data_.convex_hulls.push_back(component);
+      }
+    }
   }
 
-  BroadcastConvexHulls();
-  BroadcastComponents();
-
   GetOutput() = local_data_;
+
   return true;
 }
 
@@ -265,63 +201,6 @@ void KotelnikovaAConvexHullForBinImgMPI::FindConnectedComponentsMpi() {
     GatherComponentsFromRank0(local_data_.components);
   } else {
     SendComponentsToRank0(local_components);
-  }
-}
-
-void KotelnikovaAConvexHullForBinImgMPI::ProcessConvexHulls() {
-  local_data_.convex_hulls.clear();
-  for (const auto &component : local_data_.components) {
-    if (component.size() >= 3) {
-      local_data_.convex_hulls.push_back(GrahamScan(component));
-    } else if (!component.empty()) {
-      local_data_.convex_hulls.push_back(component);
-    }
-  }
-}
-
-void KotelnikovaAConvexHullForBinImgMPI::BroadcastConvexHulls() {
-  if (rank_ == 0) {
-    std::vector<char> serialized_data = SerializeConvexHulls(local_data_.convex_hulls);
-    int data_size = static_cast<int>(serialized_data.size());
-
-    MPI_Bcast(&data_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    if (data_size > 0) {
-      MPI_Bcast(serialized_data.data(), data_size, MPI_BYTE, 0, MPI_COMM_WORLD);
-    }
-  } else {
-    int data_size = 0;
-    MPI_Bcast(&data_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-    if (data_size > 0) {
-      std::vector<char> received_data(data_size);
-      MPI_Bcast(received_data.data(), data_size, MPI_BYTE, 0, MPI_COMM_WORLD);
-      local_data_.convex_hulls = DeserializeConvexHulls(received_data.data());
-    } else {
-      local_data_.convex_hulls.clear();
-    }
-  }
-}
-
-void KotelnikovaAConvexHullForBinImgMPI::BroadcastComponents() {
-  if (rank_ == 0) {
-    std::vector<char> serialized_comps = SerializeConvexHulls(local_data_.components);
-    int comp_data_size = static_cast<int>(serialized_comps.size());
-
-    MPI_Bcast(&comp_data_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    if (comp_data_size > 0) {
-      MPI_Bcast(serialized_comps.data(), comp_data_size, MPI_BYTE, 0, MPI_COMM_WORLD);
-    }
-  } else {
-    int comp_data_size = 0;
-    MPI_Bcast(&comp_data_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-    if (comp_data_size > 0) {
-      std::vector<char> received_comps(comp_data_size);
-      MPI_Bcast(received_comps.data(), comp_data_size, MPI_BYTE, 0, MPI_COMM_WORLD);
-      local_data_.components = DeserializeConvexHulls(received_comps.data());
-    } else {
-      local_data_.components.clear();
-    }
   }
 }
 

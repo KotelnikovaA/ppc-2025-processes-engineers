@@ -40,7 +40,6 @@ void ProcessConnectedComponent(int start_x, int start_y, int width, int height, 
                                std::vector<bool> &visited, std::vector<std::vector<Point>> &components) {
   std::vector<Point> component;
   std::queue<Point> q;
-  q.emplace(start_x, start_y);
   size_t start_idx = (static_cast<size_t>(start_y) * static_cast<size_t>(width)) + static_cast<size_t>(start_x);
   q.emplace(start_x, start_y);
   visited[start_idx] = true;
@@ -111,8 +110,8 @@ void KotelnikovaAConvexHullForBinImgSEQ::FindConnectedComponents() {
 
   for (int row_y = 0; row_y < height; ++row_y) {
     for (int col_x = 0; col_x < width; ++col_x) {
-      int idx = (row_y * width) + col_x;
-      if (processed_data_.pixels[static_cast<size_t>(idx)] == 255 && !visited[static_cast<size_t>(idx)]) {
+      size_t idx = static_cast<size_t>(row_y) * static_cast<size_t>(width) + static_cast<size_t>(col_x);
+      if (processed_data_.pixels[idx] == 255 && !visited[idx]) {
         ProcessConnectedComponent(col_x, row_y, width, height, processed_data_, visited, processed_data_.components);
       }
     }
