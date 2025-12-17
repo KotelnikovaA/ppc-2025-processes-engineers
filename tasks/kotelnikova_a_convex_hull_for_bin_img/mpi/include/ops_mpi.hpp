@@ -7,9 +7,6 @@
 
 namespace kotelnikova_a_convex_hull_for_bin_img {
 
-void DistributePixelCounts(int size, int total_pixels, std::vector<int> &counts, std::vector<int> &displs);
-void ProcessLocalPixels(std::vector<uint8_t> &local_pixels, uint8_t threshold);
-
 class KotelnikovaAConvexHullForBinImgMPI : public BaseTask {
  public:
   static constexpr ppc::task::TypeOfTask GetStaticTypeOfTask() {
