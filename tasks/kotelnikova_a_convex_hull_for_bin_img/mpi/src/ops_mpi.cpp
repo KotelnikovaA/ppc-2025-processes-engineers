@@ -6,10 +6,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <queue>
+#include <set>
 #include <utility>
 #include <vector>
-
-#include "kotelnikova_a_convex_hull_for_bin_img/common/include/common.hpp"
 
 namespace kotelnikova_a_convex_hull_for_bin_img {
 
@@ -40,7 +39,7 @@ void ProcessNeighbors(const Point &p, int width, int start_row, int end_row, con
 }
 
 void ProcessLocalRegion(int start_row, int end_row, int width, const ImageData &local_data,
-                        std::vector<std::vector<Point>> &local_components) {
+                        std::vector<std::vector<Point>> &local_components, std::vector<Point> &border_pixels) {
   std::vector<bool> visited_local(static_cast<size_t>(width) * (end_row - start_row), false);
 
   for (int row_y = start_row; row_y < end_row; ++row_y) {
@@ -54,58 +53,196 @@ void ProcessLocalRegion(int start_row, int end_row, int width, const ImageData &
         q.emplace(col_x, row_y);
         visited_local[local_idx] = true;
 
+        bool touches_border = false;
+
         while (!q.empty()) {
           Point p = q.front();
           q.pop();
           component.push_back(p);
+
+          if (p.y == start_row || p.y == end_row - 1) {
+            touches_border = true;
+          }
 
           ProcessNeighbors(p, width, start_row, end_row, local_data, visited_local, q);
         }
 
         if (!component.empty()) {
           local_components.push_back(component);
+          if (touches_border) {
+            for (const auto &point : component) {
+              if (point.y == start_row || point.y == end_row - 1) {
+                border_pixels.push_back(point);
+              }
+            }
+          }
         }
       }
     }
   }
 }
 
-void GatherComponentsFromRank0(std::vector<std::vector<Point>> &components) {
-  int size = 0;
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
+void ExchangeBorderPixels(int size, std::vector<Point> &border_pixels,
+                          std::vector<std::vector<Point>> &received_borders) {
+  int local_count = static_cast<int>(border_pixels.size()) * 2;
 
-  for (int i = 1; i < size; ++i) {
-    int comp_count = 0;
-    MPI_Recv(&comp_count, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  std::vector<int> all_counts(size);
+  MPI_Allgather(&local_count, 1, MPI_INT, all_counts.data(), 1, MPI_INT, MPI_COMM_WORLD);
 
-    for (int j = 0; j < comp_count; ++j) {
-      int comp_size = 0;
-      MPI_Recv(&comp_size, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  std::vector<int> displs(size, 0);
+  int total_size = 0;
+  for (int i = 0; i < size; ++i) {
+    displs[i] = total_size;
+    total_size += all_counts[i];
+  }
 
-      std::vector<Point> component(comp_size);
-      MPI_Recv(component.data(), comp_size * 2, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  std::vector<int> local_data;
+  local_data.reserve(local_count);
+  for (const auto &p : border_pixels) {
+    local_data.push_back(p.x);
+    local_data.push_back(p.y);
+  }
 
-      components.push_back(component);
+  std::vector<int> all_data(total_size);
+  MPI_Allgatherv(local_data.data(), local_count, MPI_INT, all_data.data(), all_counts.data(), displs.data(), MPI_INT,
+                 MPI_COMM_WORLD);
+
+  received_borders.resize(size);
+  for (int i = 0; i < size; ++i) {
+    int count = all_counts[i] / 2;
+    received_borders[i].reserve(count);
+    int start = displs[i];
+    for (int j = 0; j < count; ++j) {
+      int x = all_data[start + j * 2];
+      int y = all_data[start + j * 2 + 1];
+      received_borders[i].emplace_back(x, y);
     }
   }
 }
 
-void SendComponentsToRank0(const std::vector<std::vector<Point>> &local_components) {
-  int comp_count = static_cast<int>(local_components.size());
-  MPI_Send(&comp_count, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+void MergeBorderComponents(std::vector<std::vector<Point>> &local_components,
+                           const std::vector<std::vector<Point>> &received_borders, int current_rank, int start_row,
+                           int end_row) {
+  if (local_components.empty()) {
+    return;
+  }
+
+  std::set<std::pair<int, int>> local_border_set;
 
   for (const auto &component : local_components) {
-    int comp_size = static_cast<int>(component.size());
-    MPI_Send(&comp_size, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
-
-    std::vector<int> point_data;
-    point_data.reserve(static_cast<size_t>(comp_size) * 2);
     for (const auto &point : component) {
-      point_data.push_back(point.x);
-      point_data.push_back(point.y);
+      if (point.y == start_row || point.y == end_row - 1) {
+        local_border_set.insert({point.x, point.y});
+      }
     }
+  }
 
-    MPI_Send(point_data.data(), comp_size * 2, MPI_INT, 0, 0, MPI_COMM_WORLD);
+  bool changed;
+  do {
+    changed = false;
+
+    for (int proc = 0; proc < static_cast<int>(received_borders.size()); ++proc) {
+      if (proc == current_rank) {
+        continue;
+      }
+
+      for (const auto &border_point : received_borders[proc]) {
+        if (local_border_set.find({border_point.x, border_point.y}) != local_border_set.end()) {
+          for (size_t i = 0; i < local_components.size(); ++i) {
+            if (local_components[i].empty()) {
+              continue;
+            }
+
+            bool found_in_i = false;
+            for (const auto &p : local_components[i]) {
+              if (p.x == border_point.x && p.y == border_point.y) {
+                found_in_i = true;
+                break;
+              }
+            }
+
+            if (found_in_i) {
+              for (size_t j = 0; j < local_components.size(); ++j) {
+                if (i == j || local_components[j].empty()) {
+                  continue;
+                }
+
+                bool found_in_j = false;
+                for (const auto &p : local_components[j]) {
+                  for (const auto &other_border : received_borders[proc]) {
+                    if (p.x == other_border.x && p.y == other_border.y) {
+                      found_in_j = true;
+                      break;
+                    }
+                  }
+                  if (found_in_j) {
+                    break;
+                  }
+                }
+
+                if (found_in_j) {
+                  local_components[i].insert(local_components[i].end(), local_components[j].begin(),
+                                             local_components[j].end());
+                  local_components[j].clear();
+                  changed = true;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } while (changed);
+
+  local_components.erase(std::remove_if(local_components.begin(), local_components.end(),
+                                        [](const std::vector<Point> &comp) { return comp.empty(); }),
+                         local_components.end());
+}
+
+void GatherAllComponents(int rank, int size, std::vector<std::vector<Point>> &local_components,
+                         std::vector<std::vector<Point>> &all_components) {
+  if (rank == 0) {
+    all_components = local_components;
+
+    for (int i = 1; i < size; ++i) {
+      int comp_count = 0;
+      MPI_Recv(&comp_count, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+      for (int j = 0; j < comp_count; ++j) {
+        int comp_size = 0;
+        MPI_Recv(&comp_size, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+        if (comp_size > 0) {
+          std::vector<int> point_data(comp_size * 2);
+          MPI_Recv(point_data.data(), comp_size * 2, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+          std::vector<Point> component;
+          component.reserve(comp_size);
+          for (int k = 0; k < comp_size; ++k) {
+            component.emplace_back(point_data[k * 2], point_data[k * 2 + 1]);
+          }
+          all_components.push_back(component);
+        }
+      }
+    }
+  } else {
+    int comp_count = static_cast<int>(local_components.size());
+    MPI_Send(&comp_count, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+
+    for (const auto &component : local_components) {
+      int comp_size = static_cast<int>(component.size());
+      MPI_Send(&comp_size, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+
+      if (comp_size > 0) {
+        std::vector<int> point_data;
+        point_data.reserve(comp_size * 2);
+        for (const auto &point : component) {
+          point_data.push_back(point.x);
+          point_data.push_back(point.y);
+        }
+        MPI_Send(point_data.data(), comp_size * 2, MPI_INT, 0, 0, MPI_COMM_WORLD);
+      }
+    }
   }
 }
 
@@ -143,7 +280,6 @@ bool KotelnikovaAConvexHullForBinImgMPI::RunImpl() {
   }
 
   GetOutput() = local_data_;
-
   return true;
 }
 
@@ -155,32 +291,50 @@ void KotelnikovaAConvexHullForBinImgMPI::BinarizeImageMpi() {
   const uint8_t threshold = 128;
   int total_pixels = local_data_.width * local_data_.height;
 
-  int pixels_per_proc = total_pixels / size_;
-  int remainder = total_pixels % size_;
+  if (rank_ == 0) {
+    std::vector<int> counts(size_);
+    std::vector<int> displs(size_);
 
-  int start_idx = (rank_ * pixels_per_proc) + std::min(rank_, remainder);
-  int end_idx = start_idx + pixels_per_proc + (rank_ < remainder ? 1 : 0);
+    int base_count = total_pixels / size_;
+    int remainder = total_pixels % size_;
 
-  for (int i = start_idx; i < end_idx; ++i) {
-    if (local_data_.pixels[i] > threshold) {
-      local_data_.pixels[i] = 255;
-    } else {
-      local_data_.pixels[i] = 0;
+    for (int i = 0; i < size_; ++i) {
+      counts[i] = base_count + (i < remainder ? 1 : 0);
+      displs[i] = (i == 0) ? 0 : displs[i - 1] + counts[i - 1];
     }
+
+    std::vector<uint8_t> local_pixels(counts[0]);
+
+    MPI_Scatterv(local_data_.pixels.data(), counts.data(), displs.data(), MPI_UINT8_T, local_pixels.data(), counts[0],
+                 MPI_UINT8_T, 0, MPI_COMM_WORLD);
+
+    for (auto &pixel : local_pixels) {
+      pixel = (pixel > threshold) ? 255 : 0;
+    }
+
+    MPI_Gatherv(local_pixels.data(), counts[0], MPI_UINT8_T, local_data_.pixels.data(), counts.data(), displs.data(),
+                MPI_UINT8_T, 0, MPI_COMM_WORLD);
+
+    MPI_Bcast(local_data_.pixels.data(), total_pixels, MPI_UINT8_T, 0, MPI_COMM_WORLD);
+  } else {
+    int base_count = total_pixels / size_;
+    int remainder = total_pixels % size_;
+    int local_count = base_count + (rank_ < remainder ? 1 : 0);
+
+    std::vector<uint8_t> local_pixels(local_count);
+
+    MPI_Scatterv(nullptr, nullptr, nullptr, MPI_UINT8_T, local_pixels.data(), local_count, MPI_UINT8_T, 0,
+                 MPI_COMM_WORLD);
+
+    for (auto &pixel : local_pixels) {
+      pixel = (pixel > threshold) ? 255 : 0;
+    }
+
+    MPI_Gatherv(local_pixels.data(), local_count, MPI_UINT8_T, nullptr, nullptr, nullptr, MPI_UINT8_T, 0,
+                MPI_COMM_WORLD);
+
+    MPI_Bcast(local_data_.pixels.data(), total_pixels, MPI_UINT8_T, 0, MPI_COMM_WORLD);
   }
-
-  std::vector<int> recv_counts(size_);
-  std::vector<int> displs(size_);
-
-  for (int i = 0; i < size_; ++i) {
-    int proc_start = (i * pixels_per_proc) + std::min(i, remainder);
-    int proc_end = proc_start + pixels_per_proc + (i < remainder ? 1 : 0);
-    recv_counts[i] = proc_end - proc_start;
-    displs[i] = proc_start;
-  }
-
-  MPI_Allgatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, local_data_.pixels.data(), recv_counts.data(), displs.data(),
-                 MPI_UINT8_T, MPI_COMM_WORLD);
 }
 
 void KotelnikovaAConvexHullForBinImgMPI::FindConnectedComponentsMpi() {
@@ -194,13 +348,21 @@ void KotelnikovaAConvexHullForBinImgMPI::FindConnectedComponentsMpi() {
   int end_row = start_row + rows_per_proc + (rank_ < remainder ? 1 : 0);
 
   std::vector<std::vector<Point>> local_components;
-  ProcessLocalRegion(start_row, end_row, width, local_data_, local_components);
+  std::vector<Point> border_pixels;
+  ProcessLocalRegion(start_row, end_row, width, local_data_, local_components, border_pixels);
+
+  std::vector<std::vector<Point>> received_borders;
+  ExchangeBorderPixels(size_, border_pixels, received_borders);
+
+  MergeBorderComponents(local_components, received_borders, rank_, start_row, end_row);
+
+  std::vector<std::vector<Point>> all_components;
+  GatherAllComponents(rank_, size_, local_components, all_components);
 
   if (rank_ == 0) {
-    local_data_.components = local_components;
-    GatherComponentsFromRank0(local_data_.components);
+    local_data_.components = all_components;
   } else {
-    SendComponentsToRank0(local_components);
+    local_data_.components.clear();
   }
 }
 
