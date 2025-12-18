@@ -402,7 +402,6 @@ bool KotelnikovaAConvexHullForBinImgMPI::RunImpl() {
       }
     }
   }
-
   GetOutput() = local_data_;
 
   return true;
