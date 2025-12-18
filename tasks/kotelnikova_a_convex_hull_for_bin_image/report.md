@@ -224,7 +224,6 @@ void ProcessConnectedComponent(int start_x, int start_y, int width, int height, 
     Point p = q.front();
     q.pop();
     component.push_back(p);
-
     ProcessPixelNeighbors(p, width, height, processed_data, visited, q);
   }
 
