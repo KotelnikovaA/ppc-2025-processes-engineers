@@ -276,7 +276,7 @@ class KotelnikovaAFuncTestsProcesses3 : public ppc::util::BaseRunFuncTests<InTyp
     int center_y = data.height / 2;
 
     for (int i = -2; i <= 2; ++i) {
-      int px = center_x + i * 5;
+      int px = center_x + (i * 5);
       int py = center_y;
       if (px >= 0 && px < data.width) {
         int idx = (py * data.width) + px;
