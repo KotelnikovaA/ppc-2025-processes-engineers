@@ -36,6 +36,17 @@ class KotelnikovaAFuncTestsProcesses3 : public ppc::util::BaseRunFuncTests<InTyp
         }
       }
 
+      if (hull.size() == 1) {
+        continue;
+      }
+
+      if (hull.size() == 2) {
+        if (hull[0] == hull[1]) {
+          return false;
+        }
+        continue;
+      }
+
       if (hull.size() >= 3) {
         for (size_t i = 0; i < hull.size(); ++i) {
           const Point &p0 = hull[i];
@@ -83,6 +94,15 @@ class KotelnikovaAFuncTestsProcesses3 : public ppc::util::BaseRunFuncTests<InTyp
         break;
       case 7:
         CreateLShapePattern(data);
+        break;
+      case 8:
+        CreateSinglePoint(data);
+        break;
+      case 9:
+        CreateTwoPoints(data);
+        break;
+      case 10:
+        CreateColinearPoints(data);
         break;
       default:
         CreateSquarePattern(data);
@@ -232,6 +252,38 @@ class KotelnikovaAFuncTestsProcesses3 : public ppc::util::BaseRunFuncTests<InTyp
       }
     }
   }
+
+  static void CreateSinglePoint(ImageData &data) {
+    int center_x = data.width / 2;
+    int center_y = data.height / 2;
+    int idx = (center_y * data.width) + center_x;
+    data.pixels[idx] = 255;
+  }
+
+  static void CreateTwoPoints(ImageData &data) {
+    int center_x = data.width / 2;
+    int center_y = data.height / 2;
+
+    int idx1 = (center_y * data.width) + center_x;
+    int idx2 = ((center_y + 5) * data.width) + center_x;
+
+    data.pixels[idx1] = 255;
+    data.pixels[idx2] = 255;
+  }
+
+  static void CreateColinearPoints(ImageData &data) {
+    int center_x = data.width / 2;
+    int center_y = data.height / 2;
+
+    for (int i = -2; i <= 2; ++i) {
+      int px = center_x + i * 5;
+      int py = center_y;
+      if (px >= 0 && px < data.width) {
+        int idx = (py * data.width) + px;
+        data.pixels[idx] = 255;
+      }
+    }
+  }
 };
 
 namespace {
@@ -240,10 +292,11 @@ TEST_P(KotelnikovaAFuncTestsProcesses3, MatmulFromPic) {
   ExecuteTest(GetParam());
 }
 
-const std::array<TestType, 7> kTestParam = {std::make_tuple(1, "square"), std::make_tuple(2, "triangle"),
-                                            std::make_tuple(3, "circle"), std::make_tuple(4, "multiple"),
-                                            std::make_tuple(5, "lines"),  std::make_tuple(6, "with_hole"),
-                                            std::make_tuple(7, "L_shape")};
+const std::array<TestType, 10> kTestParam = {std::make_tuple(1, "square"),     std::make_tuple(2, "triangle"),
+                                             std::make_tuple(3, "circle"),     std::make_tuple(4, "multiple"),
+                                             std::make_tuple(5, "lines"),      std::make_tuple(6, "with_hole"),
+                                             std::make_tuple(7, "L_shape"),    std::make_tuple(8, "single_point"),
+                                             std::make_tuple(9, "two_points"), std::make_tuple(10, "colinear_points")};
 
 const auto kTestTasksList = std::tuple_cat(ppc::util::AddFuncTask<KotelnikovaAConvexHullForBinImgMPI, InType>(
                                                kTestParam, PPC_SETTINGS_kotelnikova_a_convex_hull_for_bin_image),
