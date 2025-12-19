@@ -292,6 +292,24 @@ TEST_P(KotelnikovaAFuncTestsProcesses3, MatmulFromPic) {
   ExecuteTest(GetParam());
 }
 
+// для покрытия common.hpp
+TEST(PointOperatorsTest, EqualityAndComparison) {
+  Point p1(1, 2);
+  Point p2(1, 2);
+  Point p3(1, 3);
+  Point p4(2, 2);
+
+  EXPECT_TRUE(p1 == p2);
+  EXPECT_FALSE(p1 == p3);
+
+  EXPECT_TRUE(p1 != p3);
+  EXPECT_FALSE(p1 != p2);
+
+  EXPECT_TRUE(p1 < p3);
+  EXPECT_TRUE(p1 < p4);
+  EXPECT_FALSE(p3 < p1);
+}
+
 const std::array<TestType, 10> kTestParam = {std::make_tuple(1, "square"),     std::make_tuple(2, "triangle"),
                                              std::make_tuple(3, "circle"),     std::make_tuple(4, "multiple"),
                                              std::make_tuple(5, "lines"),      std::make_tuple(6, "with_hole"),
