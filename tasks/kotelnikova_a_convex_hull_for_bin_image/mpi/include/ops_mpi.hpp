@@ -1,5 +1,6 @@
 #pragma once
 
+#include <queue>
 #include <vector>
 
 #include "kotelnikova_a_convex_hull_for_bin_image/common/include/common.hpp"
@@ -22,9 +23,17 @@ class KotelnikovaAConvexHullForBinImgMPI : public BaseTask {
 
   void FindConnectedComponentsMpi();
   void ProcessComponentsAndComputeHulls();
+  void GatherConvexHullsToRank0();
+  void ReceiveHullsFromProcess(int source_rank, int hull_count);
+  void SendHullsToRank0();
   static std::vector<Point> GrahamScan(const std::vector<Point> &points);
 
   void ScatterDataAndDistributeWork();
+  void ProcessImageRegion(int width, int local_rows, std::vector<bool> &visited_local,
+                          std::vector<std::vector<Point>> &local_components);
+  void ProcessPixel(int col_x, int global_row_y, int local_row_y, int width, std::vector<bool> &visited_local,
+                    std::vector<std::vector<Point>> &local_components);
+  void ProcessPixelNeighbors(const Point &p, int width, std::vector<bool> &visited_local, std::queue<Point> &q);
 
   ImageData local_data_;
   ImageData full_data_;
