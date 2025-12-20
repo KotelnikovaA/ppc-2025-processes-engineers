@@ -29,16 +29,19 @@ class KotelnikovaAConvexHullForBinImgMPI : public BaseTask {
   static std::vector<Point> GrahamScan(const std::vector<Point> &points);
 
   void ScatterDataAndDistributeWork();
-  void ProcessImageRegion(int width, int local_rows, std::vector<bool> &visited_local,
-                          std::vector<std::vector<Point>> &local_components);
-  void ProcessPixel(int col_x, int global_row_y, int local_row_y, int width, std::vector<bool> &visited_local,
-                    std::vector<std::vector<Point>> &local_components);
-  void ProcessPixelNeighbors(const Point &p, int width, std::vector<bool> &visited_local, std::queue<Point> &q);
+  void ExchangeBoundaryRows(int width, int local_rows, int extended_start_row, int extended_local_rows,
+                            std::vector<uint8_t> &extended_pixels);
+  void ProcessExtendedRegion(int width, int extended_start_row, int extended_local_rows,
+                             const std::vector<uint8_t> &extended_pixels, std::vector<bool> &visited_extended,
+                             std::vector<std::vector<Point>> &all_components);
+  void ProcessExtendedNeighbors(const Point &p, int width, int extended_start_row, int extended_local_rows,
+                                const std::vector<uint8_t> &extended_pixels, std::vector<bool> &visited_extended,
+                                std::queue<Point> &q);
+  void FilterLocalComponents(const std::vector<std::vector<Point>> &all_components);
 
   ImageData local_data_;
   ImageData full_data_;
   int rank_{0}, size_{0};
-
   int start_row_{0}, end_row_{0};
   int rows_per_proc_{0};
 };

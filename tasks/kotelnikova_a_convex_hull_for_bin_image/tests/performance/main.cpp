@@ -273,7 +273,7 @@ TEST_P(KotelnikovaARunPerfTestProcesses3, RunPerfModes) {
 }
 
 const auto kAllPerfTasks =
-    ppc::util::MakeAllPerfTasks<InType, KotelnikovaAConvexHullForBinImgMPI, KotelnikovaAConvexHullForBinImgSEQ>(
+    ppc::util::MakeAllPerfTasks<InType, KotelnikovaAConvexHullForBinImgSEQ, KotelnikovaAConvexHullForBinImgMPI>(
         PPC_SETTINGS_kotelnikova_a_convex_hull_for_bin_image);
 
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);

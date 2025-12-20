@@ -76,7 +76,6 @@ void KotelnikovaAConvexHullForBinImgMPI::ScatterDataAndDistributeWork() {
 
   start_row_ = (rank_ * rows_per_proc_) + std::min(rank_, remainder);
   end_row_ = start_row_ + rows_per_proc_ + (rank_ < remainder ? 1 : 0);
-  int local_rows = end_row_ - start_row_;
 
   std::vector<int> send_counts(size_, 0);
   std::vector<int> displs(size_, 0);
@@ -90,6 +89,7 @@ void KotelnikovaAConvexHullForBinImgMPI::ScatterDataAndDistributeWork() {
     }
   }
 
+  int local_rows = end_row_ - start_row_;
   size_t local_pixel_count = static_cast<size_t>(local_rows) * static_cast<size_t>(width);
   local_data_.pixels.resize(local_pixel_count);
 
@@ -102,7 +102,6 @@ bool KotelnikovaAConvexHullForBinImgMPI::RunImpl() {
   ProcessComponentsAndComputeHulls();
   GatherConvexHullsToRank0();
   GetOutput() = local_data_;
-
   return true;
 }
 
@@ -112,11 +111,14 @@ void KotelnikovaAConvexHullForBinImgMPI::GatherConvexHullsToRank0() {
   MPI_Gather(&local_hull_count, 1, MPI_INT, hull_counts.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
 
   if (rank_ == 0) {
+    std::vector<std::vector<Point>> rank0_hulls = local_data_.convex_hulls;
+    local_data_.convex_hulls.clear();
+
     for (int i = 1; i < size_; ++i) {
       ReceiveHullsFromProcess(i, hull_counts[i]);
     }
 
-    for (const auto &hull : local_data_.components) {
+    for (const auto &hull : rank0_hulls) {
       local_data_.convex_hulls.push_back(hull);
     }
   } else {
@@ -181,81 +183,143 @@ void KotelnikovaAConvexHullForBinImgMPI::ProcessComponentsAndComputeHulls() {
 
 void KotelnikovaAConvexHullForBinImgMPI::FindConnectedComponentsMpi() {
   int width = local_data_.width;
+  int height = local_data_.height;
   int local_rows = end_row_ - start_row_;
 
-  std::vector<bool> visited_local(static_cast<size_t>(width) * local_rows, false);
-  std::vector<std::vector<Point>> local_components;
+  int extended_start_row = std::max(0, start_row_ - 1);
+  int extended_end_row = std::min(height, end_row_ + 1);
+  int extended_local_rows = extended_end_row - extended_start_row;
 
-  ProcessImageRegion(width, local_rows, visited_local, local_components);
+  std::vector<uint8_t> extended_pixels(static_cast<size_t>(extended_local_rows) * width);
 
-  local_data_.components = local_components;
+  for (int row = 0; row < local_rows; ++row) {
+    int global_row = start_row_ + row;
+    int ext_row = global_row - extended_start_row;
+    for (int col = 0; col < width; ++col) {
+      size_t local_idx = static_cast<size_t>(row) * width + col;
+      size_t ext_idx = static_cast<size_t>(ext_row) * width + col;
+      extended_pixels[ext_idx] = local_data_.pixels[local_idx];
+    }
+  }
+
+  ExchangeBoundaryRows(width, local_rows, extended_start_row, extended_local_rows, extended_pixels);
+
+  std::vector<bool> visited_extended(static_cast<size_t>(extended_local_rows) * width, false);
+  std::vector<std::vector<Point>> all_components;
+
+  ProcessExtendedRegion(width, extended_start_row, extended_local_rows, extended_pixels, visited_extended,
+                        all_components);
+
+  FilterLocalComponents(all_components);
 }
 
-void KotelnikovaAConvexHullForBinImgMPI::ProcessImageRegion(int width, int local_rows, std::vector<bool> &visited_local,
-                                                            std::vector<std::vector<Point>> &local_components) {
-  for (int row_y = 0; row_y < local_rows; ++row_y) {
-    int global_row_y = start_row_ + row_y;
-    for (int col_x = 0; col_x < width; ++col_x) {
-      ProcessPixel(col_x, global_row_y, row_y, width, visited_local, local_components);
+void KotelnikovaAConvexHullForBinImgMPI::ExchangeBoundaryRows(int width, int local_rows, int extended_start_row,
+                                                              int extended_local_rows,
+                                                              std::vector<uint8_t> &extended_pixels) {
+  if (start_row_ > 0) {
+    int prev_rank = rank_ - 1;
+    int top_row_in_extended = 0;
+    MPI_Send(&extended_pixels[static_cast<size_t>(top_row_in_extended) * width], width, MPI_UINT8_T, prev_rank, 0,
+             MPI_COMM_WORLD);
+  }
+
+  if (end_row_ < local_data_.height) {
+    int next_rank = rank_ + 1;
+    if (next_rank < size_) {
+      int bottom_row_in_extended = extended_local_rows - 1;
+      MPI_Recv(&extended_pixels[static_cast<size_t>(bottom_row_in_extended) * width], width, MPI_UINT8_T, next_rank, 0,
+               MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+  }
+
+  if (end_row_ < local_data_.height) {
+    int next_rank = rank_ + 1;
+    if (next_rank < size_) {
+      int bottom_local_row = local_rows - 1;
+      int bottom_row_in_extended = (start_row_ + bottom_local_row) - extended_start_row;
+      MPI_Send(&extended_pixels[static_cast<size_t>(bottom_row_in_extended) * width], width, MPI_UINT8_T, next_rank, 1,
+               MPI_COMM_WORLD);
+    }
+  }
+
+  if (start_row_ > 0) {
+    int prev_rank = rank_ - 1;
+    int top_row_in_extended = 0;
+    MPI_Recv(&extended_pixels[static_cast<size_t>(top_row_in_extended) * width], width, MPI_UINT8_T, prev_rank, 1,
+             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  }
+}
+
+void KotelnikovaAConvexHullForBinImgMPI::ProcessExtendedRegion(int width, int extended_start_row,
+                                                               int extended_local_rows,
+                                                               const std::vector<uint8_t> &extended_pixels,
+                                                               std::vector<bool> &visited_extended,
+                                                               std::vector<std::vector<Point>> &all_components) {
+  for (int ext_row = 0; ext_row < extended_local_rows; ++ext_row) {
+    int global_row = extended_start_row + ext_row;
+    for (int col = 0; col < width; ++col) {
+      size_t ext_idx = static_cast<size_t>(ext_row) * width + col;
+
+      if (extended_pixels[ext_idx] == 255 && !visited_extended[ext_idx]) {
+        std::vector<Point> component;
+        std::queue<Point> q;
+        q.emplace(col, global_row);
+        visited_extended[ext_idx] = true;
+
+        while (!q.empty()) {
+          Point p = q.front();
+          q.pop();
+          component.push_back(p);
+
+          ProcessExtendedNeighbors(p, width, extended_start_row, extended_local_rows, extended_pixels, visited_extended,
+                                   q);
+        }
+
+        if (!component.empty()) {
+          all_components.push_back(component);
+        }
+      }
     }
   }
 }
 
-void KotelnikovaAConvexHullForBinImgMPI::ProcessPixel(int col_x, int global_row_y, int local_row_y, int width,
-                                                      std::vector<bool> &visited_local,
-                                                      std::vector<std::vector<Point>> &local_components) {
-  int local_idx = (local_row_y * width) + col_x;
-  int global_idx = (global_row_y * width) + col_x;
-
-  bool is_white_pixel = local_data_.pixels[global_idx] == 255;
-  bool is_not_visited = !visited_local[local_idx];
-
-  if (!is_white_pixel || !is_not_visited) {
-    return;
-  }
-
-  std::vector<Point> component;
-  std::queue<Point> q;
-  q.emplace(col_x, global_row_y);
-  visited_local[local_idx] = true;
-
-  while (!q.empty()) {
-    Point p = q.front();
-    q.pop();
-    component.push_back(p);
-
-    ProcessPixelNeighbors(p, width, visited_local, q);
-  }
-
-  if (!component.empty()) {
-    local_components.push_back(component);
-  }
-}
-
-void KotelnikovaAConvexHullForBinImgMPI::ProcessPixelNeighbors(const Point &p, int width,
-                                                               std::vector<bool> &visited_local, std::queue<Point> &q) {
+void KotelnikovaAConvexHullForBinImgMPI::ProcessExtendedNeighbors(const Point &p, int width, int extended_start_row,
+                                                                  int extended_local_rows,
+                                                                  const std::vector<uint8_t> &extended_pixels,
+                                                                  std::vector<bool> &visited_extended,
+                                                                  std::queue<Point> &q) {
   const std::vector<std::pair<int, int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
   for (const auto &dir : directions) {
     int nx = p.x + dir.first;
     int ny = p.y + dir.second;
 
-    bool is_in_x_bounds = nx >= 0 && nx < width;
-    bool is_in_y_bounds = ny >= start_row_ && ny < end_row_;
+    int ext_row = ny - extended_start_row;
+    if (nx >= 0 && nx < width && ext_row >= 0 && ext_row < extended_local_rows) {
+      size_t ext_idx = static_cast<size_t>(ext_row) * width + nx;
 
-    if (!is_in_x_bounds || !is_in_y_bounds) {
-      continue;
+      if (extended_pixels[ext_idx] == 255 && !visited_extended[ext_idx]) {
+        visited_extended[ext_idx] = true;
+        q.emplace(nx, ny);
+      }
+    }
+  }
+}
+
+void KotelnikovaAConvexHullForBinImgMPI::FilterLocalComponents(const std::vector<std::vector<Point>> &all_components) {
+  local_data_.components.clear();
+
+  for (const auto &component : all_components) {
+    bool belongs_to_local = false;
+    for (const auto &point : component) {
+      if (point.y >= start_row_ && point.y < end_row_) {
+        belongs_to_local = true;
+        break;
+      }
     }
 
-    int nlocal_idx = ((ny - start_row_) * width) + nx;
-    int nglobal_idx = (ny * width) + nx;
-
-    bool is_neighbor_white = local_data_.pixels[nglobal_idx] == 255;
-    bool is_neighbor_not_visited = !visited_local[nlocal_idx];
-
-    if (is_neighbor_white && is_neighbor_not_visited) {
-      visited_local[nlocal_idx] = true;
-      q.emplace(nx, ny);
+    if (belongs_to_local) {
+      local_data_.components.push_back(component);
     }
   }
 }
