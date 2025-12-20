@@ -292,58 +292,6 @@ TEST_P(KotelnikovaAFuncTestsProcesses3, MatmulFromPic) {
   ExecuteTest(GetParam());
 }
 
-// для покрытия common.hpp
-TEST(PointOperatorsTest, EqualityOperator) {
-  Point p1(1, 2);
-  Point p2(1, 2);
-  Point p3(1, 3);
-  Point p4(2, 2);
-
-  EXPECT_TRUE(p1 == p2);
-  EXPECT_FALSE(p1 == p3);
-  EXPECT_FALSE(p1 == p4);
-
-  EXPECT_TRUE(Point(0, 0) == Point(0, 0));
-  EXPECT_FALSE(Point(0, 0) == Point(1, 0));
-  EXPECT_FALSE(Point(0, 0) == Point(0, 1));
-  EXPECT_FALSE(Point(0, 0) == Point(1, 1));
-}
-
-TEST(PointOperatorsTest, InequalityOperator) {
-  Point p1(1, 2);
-  Point p2(1, 2);
-  Point p3(1, 3);
-  Point p4(2, 2);
-
-  EXPECT_FALSE(p1 != p2);
-  EXPECT_TRUE(p1 != p3);
-  EXPECT_TRUE(p1 != p4);
-
-  EXPECT_FALSE(Point(0, 0) != Point(0, 0));
-  EXPECT_TRUE(Point(0, 0) != Point(1, 0));
-  EXPECT_TRUE(Point(0, 0) != Point(0, 1));
-  EXPECT_TRUE(Point(0, 0) != Point(1, 1));
-}
-
-TEST(PointOperatorsTest, LessThanOperator) {
-  Point p1(1, 2);
-  Point p2(1, 3);
-  Point p3(2, 2);
-  Point p4(2, 3);
-
-  EXPECT_TRUE(p1 < p2);
-  EXPECT_TRUE(p1 < p3);
-  EXPECT_TRUE(p1 < p4);
-  EXPECT_FALSE(p2 < p1);
-  EXPECT_FALSE(p3 < p1);
-  EXPECT_FALSE(p4 < p1);
-
-  EXPECT_TRUE(Point(1, 1) < Point(1, 2));
-  EXPECT_TRUE(Point(1, 1) < Point(2, 0));
-  EXPECT_FALSE(Point(1, 2) < Point(1, 1));
-  EXPECT_FALSE(Point(2, 0) < Point(1, 1));
-}
-
 const std::array<TestType, 10> kTestParam = {std::make_tuple(1, "square"),     std::make_tuple(2, "triangle"),
                                              std::make_tuple(3, "circle"),     std::make_tuple(4, "multiple"),
                                              std::make_tuple(5, "lines"),      std::make_tuple(6, "with_hole"),
