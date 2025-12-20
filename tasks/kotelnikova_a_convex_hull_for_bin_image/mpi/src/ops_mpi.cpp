@@ -196,8 +196,8 @@ void KotelnikovaAConvexHullForBinImgMPI::FindConnectedComponentsMpi() {
     int global_row = start_row_ + row;
     int ext_row = global_row - extended_start_row;
     for (int col = 0; col < width; ++col) {
-      size_t local_idx = (static_cast<size_t>(row) * width) + col;
-      size_t ext_idx = (static_cast<size_t>(ext_row) * width) + col;
+      size_t local_idx = (static_cast<size_t>(row) * static_cast<size_t>(width)) + static_cast<size_t>(col);
+      size_t ext_idx = (static_cast<size_t>(ext_row) * static_cast<size_t>(width)) + static_cast<size_t>(col);
       extended_pixels[ext_idx] = local_data_.pixels[local_idx];
     }
   }
@@ -215,20 +215,20 @@ void KotelnikovaAConvexHullForBinImgMPI::FindConnectedComponentsMpi() {
 
 void KotelnikovaAConvexHullForBinImgMPI::ExchangeBoundaryRows(int width, int local_rows, int extended_start_row,
                                                               int extended_local_rows,
-                                                              std::vector<uint8_t> &extended_pixels) {
+                                                              std::vector<uint8_t> &extended_pixels) const {
   if (start_row_ > 0) {
     int prev_rank = rank_ - 1;
     int top_row_in_extended = 0;
-    MPI_Send(&extended_pixels[static_cast<size_t>(top_row_in_extended) * width], width, MPI_UINT8_T, prev_rank, 0,
-             MPI_COMM_WORLD);
+    MPI_Send(&extended_pixels[static_cast<size_t>(top_row_in_extended) * static_cast<size_t>(width)], width,
+             MPI_UINT8_T, prev_rank, 0, MPI_COMM_WORLD);
   }
 
   if (end_row_ < local_data_.height) {
     int next_rank = rank_ + 1;
     if (next_rank < size_) {
       int bottom_row_in_extended = extended_local_rows - 1;
-      MPI_Recv(&extended_pixels[static_cast<size_t>(bottom_row_in_extended) * width], width, MPI_UINT8_T, next_rank, 0,
-               MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(&extended_pixels[static_cast<size_t>(bottom_row_in_extended) * static_cast<size_t>(width)], width,
+               MPI_UINT8_T, next_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
   }
 
@@ -237,16 +237,16 @@ void KotelnikovaAConvexHullForBinImgMPI::ExchangeBoundaryRows(int width, int loc
     if (next_rank < size_) {
       int bottom_local_row = local_rows - 1;
       int bottom_row_in_extended = (start_row_ + bottom_local_row) - extended_start_row;
-      MPI_Send(&extended_pixels[static_cast<size_t>(bottom_row_in_extended) * width], width, MPI_UINT8_T, next_rank, 1,
-               MPI_COMM_WORLD);
+      MPI_Send(&extended_pixels[static_cast<size_t>(bottom_row_in_extended) * static_cast<size_t>(width)], width,
+               MPI_UINT8_T, next_rank, 1, MPI_COMM_WORLD);
     }
   }
 
   if (start_row_ > 0) {
     int prev_rank = rank_ - 1;
     int top_row_in_extended = 0;
-    MPI_Recv(&extended_pixels[static_cast<size_t>(top_row_in_extended) * width], width, MPI_UINT8_T, prev_rank, 1,
-             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(&extended_pixels[static_cast<size_t>(top_row_in_extended) * static_cast<size_t>(width)], width,
+             MPI_UINT8_T, prev_rank, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
   }
 }
 
@@ -258,7 +258,7 @@ void KotelnikovaAConvexHullForBinImgMPI::ProcessExtendedRegion(int width, int ex
   for (int ext_row = 0; ext_row < extended_local_rows; ++ext_row) {
     int global_row = extended_start_row + ext_row;
     for (int col = 0; col < width; ++col) {
-      size_t ext_idx = (static_cast<size_t>(ext_row) * width) + col;
+      size_t ext_idx = (static_cast<size_t>(ext_row) * static_cast<size_t>(width)) + static_cast<size_t>(col);
 
       if (extended_pixels[ext_idx] == 255 && !visited_extended[ext_idx]) {
         std::vector<Point> component;
@@ -296,7 +296,7 @@ void KotelnikovaAConvexHullForBinImgMPI::ProcessExtendedNeighbors(const Point &p
 
     int ext_row = ny - extended_start_row;
     if (nx >= 0 && nx < width && ext_row >= 0 && ext_row < extended_local_rows) {
-      size_t ext_idx = (static_cast<size_t>(ext_row) * width) + nx;
+      size_t ext_idx = (static_cast<size_t>(ext_row) * static_cast<size_t>(width)) + static_cast<size_t>(nx);
 
       if (extended_pixels[ext_idx] == 255 && !visited_extended[ext_idx]) {
         visited_extended[ext_idx] = true;
