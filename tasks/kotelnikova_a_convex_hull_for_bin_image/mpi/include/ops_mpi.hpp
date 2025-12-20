@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <queue>
 #include <vector>
 
@@ -30,13 +31,13 @@ class KotelnikovaAConvexHullForBinImgMPI : public BaseTask {
 
   void ScatterDataAndDistributeWork();
   void ExchangeBoundaryRows(int width, int local_rows, int extended_start_row, int extended_local_rows,
-                            std::vector<uint8_t> &extended_pixels);
+                            std::vector<uint8_t> &extended_pixels) const;
   void ProcessExtendedRegion(int width, int extended_start_row, int extended_local_rows,
                              const std::vector<uint8_t> &extended_pixels, std::vector<bool> &visited_extended,
                              std::vector<std::vector<Point>> &all_components);
-  void ProcessExtendedNeighbors(const Point &p, int width, int extended_start_row, int extended_local_rows,
-                                const std::vector<uint8_t> &extended_pixels, std::vector<bool> &visited_extended,
-                                std::queue<Point> &q);
+  static void ProcessExtendedNeighbors(const Point &p, int width, int extended_start_row, int extended_local_rows,
+                                       const std::vector<uint8_t> &extended_pixels, std::vector<bool> &visited_extended,
+                                       std::queue<Point> &q);
   void FilterLocalComponents(const std::vector<std::vector<Point>> &all_components);
 
   ImageData local_data_;

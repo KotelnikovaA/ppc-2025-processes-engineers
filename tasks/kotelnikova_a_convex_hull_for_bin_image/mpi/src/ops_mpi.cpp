@@ -196,8 +196,8 @@ void KotelnikovaAConvexHullForBinImgMPI::FindConnectedComponentsMpi() {
     int global_row = start_row_ + row;
     int ext_row = global_row - extended_start_row;
     for (int col = 0; col < width; ++col) {
-      size_t local_idx = static_cast<size_t>(row) * width + col;
-      size_t ext_idx = static_cast<size_t>(ext_row) * width + col;
+      size_t local_idx = (static_cast<size_t>(row) * width) + col;
+      size_t ext_idx = (static_cast<size_t>(ext_row) * width) + col;
       extended_pixels[ext_idx] = local_data_.pixels[local_idx];
     }
   }
@@ -258,7 +258,7 @@ void KotelnikovaAConvexHullForBinImgMPI::ProcessExtendedRegion(int width, int ex
   for (int ext_row = 0; ext_row < extended_local_rows; ++ext_row) {
     int global_row = extended_start_row + ext_row;
     for (int col = 0; col < width; ++col) {
-      size_t ext_idx = static_cast<size_t>(ext_row) * width + col;
+      size_t ext_idx = (static_cast<size_t>(ext_row) * width) + col;
 
       if (extended_pixels[ext_idx] == 255 && !visited_extended[ext_idx]) {
         std::vector<Point> component;
@@ -296,7 +296,7 @@ void KotelnikovaAConvexHullForBinImgMPI::ProcessExtendedNeighbors(const Point &p
 
     int ext_row = ny - extended_start_row;
     if (nx >= 0 && nx < width && ext_row >= 0 && ext_row < extended_local_rows) {
-      size_t ext_idx = static_cast<size_t>(ext_row) * width + nx;
+      size_t ext_idx = (static_cast<size_t>(ext_row) * width) + nx;
 
       if (extended_pixels[ext_idx] == 255 && !visited_extended[ext_idx]) {
         visited_extended[ext_idx] = true;
