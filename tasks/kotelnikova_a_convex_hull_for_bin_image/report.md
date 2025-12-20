@@ -24,7 +24,7 @@
 
 Ограничения:
 - изображение должно быть корректных размеров (width > 0, height > 0).
-- количество пикселей должно соответствовать формуле width * height.
+- количество пикселей должно соответствовать формуле `width * height`.
 - выпуклая оболочка строится методом Грэхема.
 - компоненты, содержащие менее 3 точек, не обрабатываются алгоритмом Грэхема (возвращаются как есть).
 
@@ -55,25 +55,35 @@
 Изображение разбивается по строкам между процессами. Каждый процесс обрабатывает свой вертикальный блок, находя компоненты связности в своей области. Затем результаты собираются на процессе 0, где строятся выпуклые оболочки.
 
 Распределение данных:
-- Строки изображения делятся между процессами.
+- Процесс 0 выполняет бинаризацию всего изображения.
+- Изображение разбивается по строкам между процессами с помощью MPI_Scatterv.
 - Каждый процесс получает блок строк `[start_row, end_row)`.
-- Обработка соседних пикселей между блоками осуществляется через граничные проверки.
+- Для обработки компонент, пересекающих границы блоков, используется расширенная область с обменом граничными строками между соседними процессами.
 
 Схема связи/топологии:
 - Коммуникатор MPI_COMM_WORLD.
-- Процесс 0 — координатор (сбор результатов).
-- Остальные процессы — рабочие (отправка найденных компонент).
+- Процесс 0 — координатор (распределение данных, сбор результатов, построение выпуклых оболочек).
+- Все процессы — рабочие (поиск компонент связности и построение выпуклых оболочек для своих компонент).
 
 Ранжирование ролей:
 
 Процесс 0:
+- Бинаризация всего изображения.
+- Распределение данных по процессам (MPI_Scatterv).
 - Обработка своего блока строк.
-- Приём компонент от других процессов.
+- Приём выпуклых оболочек от других процессов.
 - Построение выпуклых оболочек для всех компонент.
 
 Остальные процессы:
+- Получение своего блока данных.
 - Обработка своего блока строк.
-- Отправка найденных компонент процессу 0.
+- Отправка выпуклых оболочек процессу 0.
+
+Ключевые особенности:
+- Асинхронные вычисления: Каждый процесс независимо находит компоненты связности и строит выпуклые оболочки для своего блока.
+- Обработка граничных компонент: Используется расширенная область (+1 строка сверху и снизу) и обмен граничными строками между соседними процессами.
+- Эффективная коммуникация: Используется MPI_Scatterv для распределения данных и MPI_Gather для сбора результатов.
+- Балансировка нагрузки: Распределение строк происходит с учетом остатка для равномерной загрузки процессов.
 
 Полноценная реализация распараллеленного алгоритма представлена в Приложении (п.2).
 
@@ -102,12 +112,20 @@ kotelnikova_a_convex_hull_for_bin_image/
 - `ValidationImpl()` — проверка входных данных.
 - `PreProcessingImpl()` — бинаризация.
 - `RunImpl()` — основной алгоритм.
-- `FindConnectedComponents()` / `FindConnectedComponentsMpi()` — поиск компонент.
+- `PostProcessingImpl` — не требуется.
+
+Основные методы SEQ реализации:
+- `FindConnectedComponents()` — поиск компонент.
 - `GrahamScan()` — построение выпуклой оболочки.
 
-Алгоритмические особенности:
-- MPI-версия использует `MPI_Allgatherv` для синхронизации бинаризованного изображения.
-- Компоненты собираются на процессе 0 через точечные MPI-сообщения.
+Основные методы MPI реализации:
+- `ScatterDataAndDistributeWork()` — распределение данных между процессами.
+- `ExchangeBoundaryRows()` — обмен граничными строками между процессами.
+- `ProcessExtendedRegion()` — обработка расширенной области с граничными строками.
+- `ProcessExtendedNeighbors()` — обработка соседей в расширенной области.
+- `FilterLocalComponents()` — фильтрация компонент, принадлежащих текущему процессу.
+- `GatherConvexHullsToRank0()` — сбор выпуклых оболочек на процессе 0.
+- `ReceiveHullsFromProcess()` / `SendHullsToRank0()` — приём/отправка выпуклых оболочек.
 
 ## 6. Экспериментальная среда
 
@@ -138,7 +156,7 @@ Environment:
 ### 7.1 Корректность
 
 Корректность проверена через:
-- 7 функциональных тестов с известными ожидаемыми результатами.
+- 10 функциональных тестов с известными ожидаемыми результатами.
 - Проверка уникальности точек, принадлежности изображению и выпуклости оболочек.
 - Сравнение результатов последовательной и MPI-версий — полное совпадение.
 
@@ -150,18 +168,20 @@ Environment:
 - Speedup = Time_seq / Time_mpi
 - Efficiency = Speedup / Count * 100%
 
-| Mode        | Count | Time, s  | Speedup | Efficiency |
-|-------------|-------|----------|---------|------------|
-| seq         | 1     | 0.0988   | 1.00    | N/A        |
-| mpi         | 2     | 0.0931   | 1.06    | 53.0%      |
-| mpi         | 4     | 0.0895   | 1.12    | 28.0%      |
-| mpi         | 6     | 0.1011   | 1.08    | 18.0%      |
+| Mode        | Count | Time, s      | Speedup | Efficiency |
+|-------------|-------|--------------|---------|------------|
+| seq         | 1     | 0.0772740961 | 1.00    | N/A        |
+| mpi         | 2     | 0.0449410556 | 1.72    | 86.0%      |
+| mpi         | 4     | 0.0251098025 | 3.08    | 77.0%      |
+| mpi         | 6     | 0.0228762227 | 3.38    | 56.3%      |
 
 Анализ результатов:
-- На 2 и 4 процессах наблюдается незначительное ускорение (5.8% и 9.4% соответственно).
-- На 6 процессах происходит деградация производительности - время выполнения становится больше, чем у последовательной версии.
-- Оптимальное количество процессов для данной задачи - 4, после чего производительность падает.
-- Резкое падение эффективности с увеличением числа процессов (что скорее всего связано с расходами MPI)
+- Значительное ускорение: Параллельная реализация демонстрирует существенное ускорение по сравнению с последовательной версией уже на 4ех процессах.
+- Высокая эффективность на малом числе процессов:
+  - 86.0% эффективности на 2 процессах - отличный результат, близкий к идеальному линейному ускорению
+  - 77.0% эффективности на 4 процессах - хорошая эффективность при существенном ускорении
+- С увеличением числа процессов эффективность снижается (56.3% на 6 процессах). Это объясняется ростом накладных расходов
+- 4 процесса представляют оптимальный баланс между ускорением (3.08x) и эффективностью (77.0%). Дальнейшее увеличение числа процессов приводит к падению эффективности при незначительном приросте ускорения
 
 ## 8. Заключение
 В ходе работы была успешно решена задача построения выпуклых оболочек для компонент связности бинарного изображения с использованием последовательного алгоритма и технологии MPI для параллельных вычислений.
@@ -169,7 +189,8 @@ Environment:
 Основные результаты:
 - Разработаны корректные последовательная и параллельная версии алгоритма.
 - Реализована схема распараллеливания с разбиением изображения по строкам.
-- Достигнуто незначительное ускорение - параллельная реализация демонстрирует ускорение до 1.12 раз на 4 процессах по сравнению с последовательной версией.
+- Достигнуто значительное ускорение - параллельная реализация демонстрирует ускорение до 3.38 раз на 6 процессах по сравнению с последовательной версией.
+- Достигнуто хорошее значение эффективности - параллельная реализация демонстрирует эффективность до 86% на 2 процессах .
 
 ## 9. Источники
 1. Документация по курсу «Параллельное программирование» // URL: https://learning-process.github.io/parallel_programming_course/ru/index.html
@@ -294,173 +315,77 @@ int Cross(const Point &o, const Point &a, const Point &b) {
 
 П.2
 ```cpp
-int Cross(const Point &o, const Point &a, const Point &b) {
-  return ((a.x - o.x) * (b.y - o.y)) - ((a.y - o.y) * (b.x - o.x));
-}
-
-void ProcessNeighbors(const Point &p, int width, int start_row, int end_row, const ImageData &local_data,
-                      std::vector<bool> &visited_local, std::queue<Point> &q) {
-  const std::vector<std::pair<int, int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-
-  for (const auto &dir : directions) {
-    int nx = p.x + dir.first;
-    int ny = p.y + dir.second;
-
-    if (nx >= 0 && nx < width && ny >= start_row && ny < end_row) {
-      int nlocal_idx = ((ny - start_row) * width) + nx;
-      int nglobal_idx = (ny * width) + nx;
-
-      if (local_data.pixels[nglobal_idx] == 255 && !visited_local[nlocal_idx]) {
-        visited_local[nlocal_idx] = true;
-        q.emplace(nx, ny);
-      }
-    }
-  }
-}
-
-void ProcessLocalRegion(int start_row, int end_row, int width, const ImageData &local_data,
-                        std::vector<std::vector<Point>> &local_components) {
-  std::vector<bool> visited_local(static_cast<size_t>(width) * (end_row - start_row), false);
-
-  for (int row_y = start_row; row_y < end_row; ++row_y) {
-    for (int col_x = 0; col_x < width; ++col_x) {
-      int local_idx = ((row_y - start_row) * width) + col_x;
-      int global_idx = (row_y * width) + col_x;
-
-      if (local_data.pixels[global_idx] == 255 && !visited_local[local_idx]) {
-        std::vector<Point> component;
-        std::queue<Point> q;
-        q.emplace(col_x, row_y);
-        visited_local[local_idx] = true;
-
-        while (!q.empty()) {
-          Point p = q.front();
-          q.pop();
-          component.push_back(p);
-
-          ProcessNeighbors(p, width, start_row, end_row, local_data, visited_local, q);
-        }
-
-        if (!component.empty()) {
-          local_components.push_back(component);
-        }
-      }
-    }
-  }
-}
-
-void GatherComponentsFromRank0(std::vector<std::vector<Point>> &components) {
-  int size = 0;
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-  for (int i = 1; i < size; ++i) {
-    int comp_count = 0;
-    MPI_Recv(&comp_count, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-    for (int j = 0; j < comp_count; ++j) {
-      int comp_size = 0;
-      MPI_Recv(&comp_size, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-      std::vector<Point> component(comp_size);
-      MPI_Recv(component.data(), comp_size * 2, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-      components.push_back(component);
-    }
-  }
-}
-
-void SendComponentsToRank0(const std::vector<std::vector<Point>> &local_components) {
-  int comp_count = static_cast<int>(local_components.size());
-  MPI_Send(&comp_count, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
-
-  for (const auto &component : local_components) {
-    int comp_size = static_cast<int>(component.size());
-    MPI_Send(&comp_size, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
-
-    std::vector<int> point_data;
-    point_data.reserve(static_cast<size_t>(comp_size) * 2);
-    for (const auto &point : component) {
-      point_data.push_back(point.x);
-      point_data.push_back(point.y);
-    }
-
-    MPI_Send(point_data.data(), comp_size * 2, MPI_INT, 0, 0, MPI_COMM_WORLD);
-  }
-}
-
 bool KotelnikovaAConvexHullForBinImgMPI::RunImpl() {
   FindConnectedComponentsMpi();
-
-  if (rank_ == 0) {
-    local_data_.convex_hulls.clear();
-    for (const auto &component : local_data_.components) {
-      if (component.size() >= 3) {
-        local_data_.convex_hulls.push_back(GrahamScan(component));
-      } else if (!component.empty()) {
-        local_data_.convex_hulls.push_back(component);
-      }
-    }
-  }
+  ProcessComponentsAndComputeHulls();
+  GatherConvexHullsToRank0();
   GetOutput() = local_data_;
-
   return true;
 }
+
 
 void KotelnikovaAConvexHullForBinImgMPI::FindConnectedComponentsMpi() {
   int width = local_data_.width;
   int height = local_data_.height;
+  int local_rows = end_row_ - start_row_;
 
-  int rows_per_proc = height / size_;
-  int remainder = height % size_;
+  int extended_start_row = std::max(0, start_row_ - 1);
+  int extended_end_row = std::min(height, end_row_ + 1);
+  int extended_local_rows = extended_end_row - extended_start_row;
 
-  int start_row = (rank_ * rows_per_proc) + std::min(rank_, remainder);
-  int end_row = start_row + rows_per_proc + (rank_ < remainder ? 1 : 0);
+  std::vector<uint8_t> extended_pixels(static_cast<size_t>(extended_local_rows) * width);
 
-  std::vector<std::vector<Point>> local_components;
-  ProcessLocalRegion(start_row, end_row, width, local_data_, local_components);
+  for (int row = 0; row < local_rows; ++row) {
+    int global_row = start_row_ + row;
+    int ext_row = global_row - extended_start_row;
+    for (int col = 0; col < width; ++col) {
+      size_t local_idx = (static_cast<size_t>(row) * static_cast<size_t>(width)) + static_cast<size_t>(col);
+      size_t ext_idx = (static_cast<size_t>(ext_row) * static_cast<size_t>(width)) + static_cast<size_t>(col);
+      extended_pixels[ext_idx] = local_data_.pixels[local_idx];
+    }
+  }
 
-  if (rank_ == 0) {
-    local_data_.components = local_components;
-    GatherComponentsFromRank0(local_data_.components);
-  } else {
-    SendComponentsToRank0(local_components);
+  ExchangeBoundaryRows(width, local_rows, extended_start_row, extended_local_rows, extended_pixels);
+
+  std::vector<bool> visited_extended(static_cast<size_t>(extended_local_rows) * width, false);
+  std::vector<std::vector<Point>> all_components;
+
+  ProcessExtendedRegion(width, extended_start_row, extended_local_rows, extended_pixels, visited_extended,
+                        all_components);
+
+  FilterLocalComponents(all_components);
+}
+
+void KotelnikovaAConvexHullForBinImgMPI::ProcessComponentsAndComputeHulls() {
+  local_data_.convex_hulls.clear();
+
+  for (const auto &component : local_data_.components) {
+    if (component.size() >= 3) {
+      local_data_.convex_hulls.push_back(GrahamScan(component));
+    } else if (!component.empty()) {
+      local_data_.convex_hulls.push_back(component);
+    }
   }
 }
 
-std::vector<Point> KotelnikovaAConvexHullForBinImgMPI::GrahamScan(const std::vector<Point> &points) {
-  if (points.size() <= 3) {
-    return points;
-  }
+void KotelnikovaAConvexHullForBinImgMPI::GatherConvexHullsToRank0() {
+  std::vector<int> hull_counts(size_, 0);
+  int local_hull_count = static_cast<int>(local_data_.convex_hulls.size());
+  MPI_Gather(&local_hull_count, 1, MPI_INT, hull_counts.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-  std::vector<Point> pts = points;
-  int n = static_cast<int>(pts.size());
+  if (rank_ == 0) {
+    std::vector<std::vector<Point>> rank0_hulls = local_data_.convex_hulls;
+    local_data_.convex_hulls.clear();
 
-  int min_idx = 0;
-  for (int i = 1; i < n; ++i) {
-    if (pts[i].y < pts[min_idx].y || (pts[i].y == pts[min_idx].y && pts[i].x < pts[min_idx].x)) {
-      min_idx = i;
+    for (int i = 1; i < size_; ++i) {
+      ReceiveHullsFromProcess(i, hull_counts[i]);
     }
-  }
-  std::swap(pts[0], pts[min_idx]);
 
-  Point pivot = pts[0];
-  std::sort(pts.begin() + 1, pts.end(), [&pivot](const Point &a, const Point &b) {
-    int orient = Cross(pivot, a, b);
-    if (orient == 0) {
-      return ((a.x - pivot.x) * (a.x - pivot.x)) + ((a.y - pivot.y) * (a.y - pivot.y)) <
-             ((b.x - pivot.x) * (b.x - pivot.x)) + ((b.y - pivot.y) * (b.y - pivot.y));
+    for (const auto &hull : rank0_hulls) {
+      local_data_.convex_hulls.push_back(hull);
     }
-    return orient > 0;
-  });
-
-  std::vector<Point> hull;
-  for (int i = 0; i < n; ++i) {
-    while (hull.size() >= 2 && Cross(hull[hull.size() - 2], hull.back(), pts[i]) <= 0) {
-      hull.pop_back();
-    }
-    hull.push_back(pts[i]);
+  } else {
+    SendHullsToRank0();
   }
-
-  return hull;
 }
 ```
